@@ -462,8 +462,9 @@
 // ║  🔧  CONFIGURATION — UPDATE THESE VALUES                ║
 // ╚══════════════════════════════════════════════════════════╝
 const APPS_SCRIPT_URL      = "https://script.google.com/macros/s/AKfycbwkupivAAta3mVzzAP2pg_rnXBGCAQT1DLw19tWqfMt_O35mPCE8Uw784WFZW43EtcHNg/exec";
-const SHOP_NAME            = "Your Shop Name";
-const DELIVERY_GROUP_PHONE = "YOUR_DELIVERY_GROUP_PHONE"; // e.g. "919876543210"
+const SHOP_NAME            = "Amaze On";
+// Multiple delivery team members — each gets a separate WhatsApp message
+const DELIVERY_TEAM        = ["919717762233", "919751745184", "917395865732"];
 const COUNTRY_CODE         = "91"; // India
 // ────────────────────────────────────────────────────────────
 
@@ -511,15 +512,20 @@ let filters       = { master:{}, pending:{}, analytics:{} };
 // ── API ──────────────────────────────────────────────────────
 // Retry with exponential backoff to handle concurrent device access safely
 async function api(method, body, retries = 4) {
-  const isDemo = APPS_SCRIPT_URL === "https://script.google.com/macros/s/AKfycbwkupivAAta3mVzzAP2pg_rnXBGCAQT1DLw19tWqfMt_O35mPCE8Uw784WFZW43EtcHNg/exec";
+  const isDemo = APPS_SCRIPT_URL === "YOUR_APPS_SCRIPT_WEB_APP_URL";
   if (isDemo) { showToast("Demo mode — connect your Google Sheet first", "info"); return null; }
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
+      // ⚠️ CRITICAL: Do NOT set Content-Type header on POST to Apps Script.
+      // Setting it triggers a CORS preflight (OPTIONS) which Apps Script does not support,
+      // causing every save to fail. Without the header, it's a simple request → no preflight → works.
+      // Apps Script reads e.postData.contents regardless of Content-Type.
       const opts = method === "GET"
-        ? { method:"GET" }
-        : { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body) };
+        ? { method:"GET", redirect:"follow" }
+        : { method:"POST", redirect:"follow", body: JSON.stringify(body) };
       const res = await fetch(APPS_SCRIPT_URL, opts);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      // Apps Script may return 200 on redirect chain — don't error on 3xx
+      if (!res.ok && res.status >= 400) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (data.error) {
         // Retry on lock contention errors from Apps Script
@@ -551,8 +557,8 @@ async function loadData() {
   if (data && data.entries) {
     allEntries = data.entries;
     showToast("Synced " + allEntries.length + " orders ✓");
-  } else if (APPS_SCRIPT_URL === "https://script.google.com/macros/s/AKfycbwkupivAAta3mVzzAP2pg_rnXBGCAQT1DLw19tWqfMt_O35mPCE8Uw784WFZW43EtcHNg/execL") {
-    allEntries = getSampleData();
+  } else if (!data) {
+    showToast("⚠️ Could not reach Google Sheet. Check Apps Script deployment.", "error");
   }
   syncBtn.innerHTML = "🔄 Sync";
   syncBtn.disabled = false;
@@ -583,21 +589,20 @@ async function saveEntry() {
   } else {
     data.Status = "pending";
     data.PaymentMode = data.PaymentMode || data.ExpectedPaymentMode || "";
-    const isDemo = APPS_SCRIPT_URL === "https://script.google.com/macros/s/AKfycbwkupivAAta3mVzzAP2pg_rnXBGCAQT1DLw19tWqfMt_O35mPCE8Uw784WFZW43EtcHNg/exec";
     let newId, newEntry;
 
-    if (isDemo) {
-      newId = "d_" + Date.now();
-      newEntry = { ...data, ID: newId };
-      allEntries.push(newEntry);
-      showToast("Entry added (demo mode) ✓");
-    } else {
-      const res = await api("POST", { action:"add", data });
-      if (!res?.success) { btn.innerHTML = "Save Order"; btn.disabled = false; return; }
+    const res = await api("POST", { action:"add", data });
+    if (res?.success) {
       newId = res.id;
       newEntry = { ...data, ID: newId };
       allEntries.push(newEntry);
-      showToast("Order added ✓");
+      showToast("Order saved to sheet ✓");
+    } else {
+      // Fallback: save locally so work isn't lost, flag as unsynced
+      newId = "local_" + Date.now();
+      newEntry = { ...data, ID: newId, _unsynced: true };
+      allEntries.push(newEntry);
+      showToast("⚠️ Saved locally — sheet sync failed. Check connection & retry Sync.", "error");
     }
 
     lastSavedEntry = newEntry;
@@ -612,8 +617,7 @@ async function saveEntry() {
 async function deleteEntry(id) {
   if (!confirm("Delete this order entry?")) return;
   const res = await api("POST", { action:"delete", id });
-  const isDemo = APPS_SCRIPT_URL === "https://script.google.com/macros/s/AKfycbwkupivAAta3mVzzAP2pg_rnXBGCAQT1DLw19tWqfMt_O35mPCE8Uw784WFZW43EtcHNg/exec";
-  if (res?.success || isDemo) {
+  if (res?.success) {
     allEntries = allEntries.filter(e => e.ID !== id);
     showToast("Deleted", "error");
     renderAll();
@@ -626,9 +630,8 @@ async function confirmReceived() {
   btn.innerHTML = '<span class="spinner"></span>';
   btn.disabled = true;
   const data = { ID: markId, Status: "received", ReceivedBy: name };
-  const isDemo = APPS_SCRIPT_URL === "https://script.google.com/macros/s/AKfycbwkupivAAta3mVzzAP2pg_rnXBGCAQT1DLw19tWqfMt_O35mPCE8Uw784WFZW43EtcHNg/exec";
   const res  = await api("POST", { action:"update", data });
-  if (res?.success || isDemo) {
+  if (res?.success) {
     const idx = allEntries.findIndex(e => e.ID === markId);
     if (idx !== -1) { allEntries[idx].Status = "received"; allEntries[idx].ReceivedBy = name; }
     showToast("Marked as received ✓");
@@ -859,18 +862,29 @@ function sendGroupAlert(id) {
   const e = allEntries.find(x => x.ID === id);
   if (!e) return;
   const msg = buildGroupAlertMessage(e);
+  const team = typeof DELIVERY_TEAM !== "undefined" ? DELIVERY_TEAM : [];
 
-  const raw = (DELIVERY_GROUP_PHONE || "").replace(/\D/g,"");
-  if (raw && raw !== "YOURDELIVERYGROUPPHONE") {
-    window.open(`https://wa.me/${raw}?text=${encodeURIComponent(msg)}`, "_blank");
-  } else {
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(msg).then(() =>
-        showToast("📋 Alert copied! Paste into your delivery WhatsApp group.", "info")
-      ).catch(() => prompt("Copy this alert to your delivery WhatsApp group:", msg));
-    } else {
-      prompt("Copy this alert to your delivery WhatsApp group:", msg);
-    }
+  if (team.length === 0) {
+    // No numbers configured — copy to clipboard
+    navigator.clipboard && navigator.clipboard.writeText(msg)
+      .then(() => showToast("📋 Alert copied — paste into your delivery WhatsApp group", "info"))
+      .catch(() => prompt("Copy this alert:", msg));
+    return;
+  }
+
+  // Open WhatsApp for each delivery team member in sequence
+  // First member opens immediately, subsequent ones open with 800ms delay
+  // (browsers may block rapid popups — user may need to allow pop-ups)
+  const encoded = encodeURIComponent(msg);
+  team.forEach((num, i) => {
+    const raw = num.replace(/\D/g,"");
+    setTimeout(() => {
+      window.open(`https://wa.me/${raw}?text=${encoded}`, `_wa_team_${i}`);
+    }, i * 900);
+  });
+
+  if (team.length > 1) {
+    showToast(`🚚 Opening WhatsApp for ${team.length} delivery team members…`, "info");
   }
 }
 
@@ -912,8 +926,7 @@ function renderAll() {
   if (activeTab === "analytics") renderAnalytics();
   renderFilters();
 
-  if (APPS_SCRIPT_URL !== "https://script.google.com/macros/s/AKfycbwkupivAAta3mVzzAP2pg_rnXBGCAQT1DLw19tWqfMt_O35mPCE8Uw784WFZW43EtcHNg/exec")
-    document.getElementById("setupBanner").style.display = "none";
+  document.getElementById("setupBanner").style.display = "none";
 }
 
 // ── TABLE ─────────────────────────────────────────────────────
@@ -1495,7 +1508,7 @@ function getSampleData() {
 window.onload = () => {
   allEntries = getSampleData();
   renderAll();
-  if (APPS_SCRIPT_URL !== "https://script.google.com/macros/s/AKfycbwkupivAAta3mVzzAP2pg_rnXBGCAQT1DLw19tWqfMt_O35mPCE8Uw784WFZW43EtcHNg/exec") loadData();
+  if (APPS_SCRIPT_URL !== "YOUR_APPS_SCRIPT_WEB_APP_URL") loadData();
 };
 </script>
 </body>
