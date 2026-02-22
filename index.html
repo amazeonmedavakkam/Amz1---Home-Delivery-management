@@ -265,6 +265,7 @@
       <button class="tab active" data-tab="master"    onclick="switchTab('master')">📋 All Orders</button>
       <button class="tab"        data-tab="pending"   onclick="switchTab('pending')">⏳ Pending <span class="tab-badge" id="pendingBadge" style="display:none"></span></button>
       <button class="tab"        data-tab="analytics" onclick="switchTab('analytics')">📈 Analytics</button>
+      <button class="tab"        data-tab="settings"  onclick="switchTab('settings')">⚙️ Settings</button>
     </div>
   </div>
 </header>
@@ -312,16 +313,10 @@
   <!-- ── ANALYTICS TAB ── -->
   <div id="tab-analytics" style="display:none">
 
-    <!-- Period selector -->
+    <!-- Group-by selector -->
     <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
-      <span style="font-size:12px;font-weight:700;color:var(--slate-400);text-transform:uppercase;letter-spacing:.06em">Period:</span>
+      <span style="font-size:12px;font-weight:700;color:var(--slate-400);text-transform:uppercase;letter-spacing:.06em">View:</span>
       <div class="group-toggle">
-        <button class="gtbtn active" data-ag="all"   onclick="setAnalyticsPeriod('all')">All Time</button>
-        <button class="gtbtn"        data-ag="month" onclick="setAnalyticsPeriod('month')">This Month</button>
-        <button class="gtbtn"        data-ag="week"  onclick="setAnalyticsPeriod('week')">This Week</button>
-        <button class="gtbtn"        data-ag="today" onclick="setAnalyticsPeriod('today')">Today</button>
-      </div>
-      <div class="group-toggle" style="margin-left:auto">
         <button class="gtbtn active" data-group="day"   onclick="setGroup('day')">Daily</button>
         <button class="gtbtn"        data-group="week"  onclick="setGroup('week')">Weekly</button>
         <button class="gtbtn"        data-group="month" onclick="setGroup('month')">Monthly</button>
@@ -371,6 +366,52 @@
       </div>
       <div id="staffStatsInShop"></div>
       <div id="staffStatsDelivery" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- ── SETTINGS TAB ── -->
+  <div id="tab-settings" style="display:none">
+    <div class="card" style="max-width:640px;margin:0 auto;padding:28px 32px">
+      <div class="card-title" style="font-size:17px;margin-bottom:6px">⚙️ Configuration Settings</div>
+      <p style="font-size:13px;color:var(--slate-600);margin-bottom:24px">Edit these values in the <code style="background:var(--slate-100);padding:2px 6px;border-radius:5px;font-size:12px">&lt;script&gt;</code> section at the top of the HTML file. Changes require saving the file.</p>
+
+      <div style="display:flex;flex-direction:column;gap:20px">
+
+        <!-- WhatsApp Group Link -->
+        <div style="background:var(--green-50);border:1.5px solid var(--green-100);border-radius:12px;padding:18px 20px">
+          <div style="font-weight:700;font-size:14px;margin-bottom:4px">📱 WhatsApp Delivery Team Group Link</div>
+          <div style="font-size:12px;color:var(--slate-600);margin-bottom:12px">Used by the <strong>"Alert Delivery Team"</strong> button after saving an order.</div>
+          <div style="background:#fff;border:1.5px solid var(--slate-200);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--slate-600);margin-bottom:12px">
+            <strong>Current value:</strong> <span id="settingWaLink" style="color:var(--green-700);font-weight:700"></span>
+          </div>
+          <div style="font-size:12px;font-weight:700;color:var(--slate-700);margin-bottom:6px">How to get your group invite link:</div>
+          <ol style="font-size:12px;color:var(--slate-600);padding-left:18px;line-height:1.9">
+            <li>Open <strong>WhatsApp</strong> on your phone</li>
+            <li>Go to your <strong>Delivery Team group</strong></li>
+            <li>Tap the group name at the top → scroll down</li>
+            <li>Tap <strong>"Invite via link"</strong></li>
+            <li>Tap <strong>"Copy link"</strong></li>
+            <li>Open this HTML file in a text editor (Notepad / VS Code)</li>
+            <li>Find the line: <code style="background:var(--slate-100);padding:1px 5px;border-radius:4px">const DELIVERY_GROUP_LINK = "YOUR_WHATSAPP_GROUP_INVITE_LINK";</code></li>
+            <li>Replace <strong>YOUR_WHATSAPP_GROUP_INVITE_LINK</strong> with the copied link</li>
+            <li>Save the file and reload in your browser</li>
+          </ol>
+          <div style="margin-top:12px;background:#FFFBEB;border:1.5px solid #FDE68A;border-radius:8px;padding:10px 14px;font-size:12px;color:#92400E">
+            💡 The link looks like: <strong>https://chat.whatsapp.com/AbCdEfGhIjKlMnOpQrStUv</strong>
+          </div>
+        </div>
+
+        <!-- Other config -->
+        <div style="background:var(--slate-50);border:1.5px solid var(--slate-200);border-radius:12px;padding:18px 20px">
+          <div style="font-weight:700;font-size:14px;margin-bottom:10px">📝 Other Settings (edit in file)</div>
+          <table style="width:100%;font-size:12px;border-collapse:collapse">
+            <tr><td style="padding:6px 0;color:var(--slate-500);width:200px">Shop Name</td><td style="font-weight:700" id="settingShopName"></td></tr>
+            <tr><td style="padding:6px 0;color:var(--slate-500)">Country Code</td><td style="font-weight:700" id="settingCountry"></td></tr>
+            <tr><td style="padding:6px 0;color:var(--slate-500)">Delete Password</td><td style="font-weight:700">●●●●●●●● (hidden)</td></tr>
+          </table>
+        </div>
+
+      </div>
     </div>
   </div>
 
@@ -616,6 +657,7 @@ async function saveEntry() {
   // For new orders, also check delivery-only fields when type is Home Delivery
   const isDeliveryOrder = (data.OrderType || "Home Delivery") !== "Pay Later";
   if (isDeliveryOrder && !editingId) {
+    mandatoryFields.push({ key:"DeliveryTime",   label:"Delivery Time" });
     mandatoryFields.push({ key:"DeliveryPerson", label:"Delivery Person" });
   }
   for (const f of mandatoryFields) {
@@ -1255,38 +1297,24 @@ function renderStaffPerformance(data) {
 }
 
 function renderTimingMetrics(data) {
-  const today     = new Date().toISOString().split("T")[0];
-  const thisWeek  = getWeekKey(today);
-  const thisMonth = today.slice(0,7);
-
   // Processing time: OrderTime → BilledTime
   const procTimes = data
     .filter(e => e.OrderTime && e.BilledTime)
     .map(e => timeDiffMinutes(e.OrderTime, e.BilledTime))
     .filter(t => t > 0 && t < 240);
 
-  // Delivery time: BilledTime → DeliveryTime (received orders only)
+  // Delivery time: BilledTime → DeliveryTime
   const delTimes = data
-    .filter(e => e.BilledTime && e.DeliveryTime && e.Status === "received")
+    .filter(e => e.BilledTime && e.DeliveryTime)
     .map(e => timeDiffMinutes(e.BilledTime, e.DeliveryTime))
     .filter(t => t > 0 && t < 480);
 
   const avgProc = procTimes.length ? Math.round(procTimes.reduce((a,b)=>a+b,0)/procTimes.length) : null;
   const avgDel  = delTimes.length  ? Math.round(delTimes.reduce((a,b)=>a+b,0)/delTimes.length)   : null;
 
-  const ordersToday     = data.filter(e=>e.Date===today).length;
-  const ordersThisWeek  = data.filter(e=>getWeekKey(e.Date)===thisWeek).length;
-  const ordersThisMonth = data.filter(e=>e.Date&&e.Date.startsWith(thisMonth)).length;
-  const valueToday      = data.filter(e=>e.Date===today).reduce((s,e)=>s+Number(e.Amount||0),0);
-  const valueThisMonth  = data.filter(e=>e.Date&&e.Date.startsWith(thisMonth)).reduce((s,e)=>s+Number(e.Amount||0),0);
-
   const metrics = [
-    { label:"Avg Processing Time", value: avgProc!==null?`${avgProc} min`:"—", sub:"Order → Billed",   icon:"⚡", color:"#7C3AED", bg:"#F5F3FF" },
-    { label:"Avg Delivery Time",   value: avgDel!==null ?`${avgDel} min` :"—", sub:"Billed → Delivered",icon:"🚚", color:"#1D4ED8", bg:"#EFF6FF" },
-    { label:"Orders Today",        value: ordersToday,          sub:"deliveries",    icon:"📦", color:"#059669", bg:"#ECFDF5" },
-    { label:"Orders This Week",    value: ordersThisWeek,       sub:"deliveries",    icon:"📅", color:"#F59E0B", bg:"#FFFBEB" },
-    { label:"Orders This Month",   value: ordersThisMonth,      sub:"deliveries",    icon:"📊", color:"#0284C7", bg:"#F0F9FF" },
-    { label:"Value This Month",    value: fmtCur(valueThisMonth),sub:"revenue",      icon:"💰", color:"#DC2626", bg:"#FEF2F2" },
+    { label:"Avg Processing Time", value: avgProc!==null?`${avgProc} min`:"—", sub:"Order → Billed",    icon:"⚡", color:"#7C3AED", bg:"#F5F3FF" },
+    { label:"Avg Delivery Time",   value: avgDel!==null ?`${avgDel} min` :"—", sub:"Billed → Delivered", icon:"🚚", color:"#1D4ED8", bg:"#EFF6FF" },
   ];
 
   document.getElementById("timingMetrics").innerHTML = metrics.map(m => `
@@ -1331,7 +1359,13 @@ function drawSvgChart(containerId, series, opts={}) {
   let paths="", dots="", tooltip="";
   series.forEach(s=>{
     const pts = s.data.map((d,i)=>({x:xOf(i), y:yOf(d.v), v:d.v, k:d.k}));
-    if(pts.length<2){return;}
+    if(pts.length<1){return;}
+    if(pts.length===1){
+      const p=pts[0], lbl=opts.yFmt?opts.yFmt(p.v):Math.round(p.v);
+      paths+=`<circle cx="${p.x}" cy="${p.y}" r="5" fill="${s.color}" stroke="#fff" stroke-width="2"/>`;
+      dots+=`<text x="${p.x}" y="${p.y-12}" text-anchor="middle" font-size="10" fill="${s.color}" font-weight="700">${lbl}</text>`;
+      return;
+    }
     // smooth cubic bezier
     let d="M"+pts[0].x+","+pts[0].y;
     for(let i=1;i<pts.length;i++){
@@ -1746,17 +1780,27 @@ function collectForm() {
 // ── TAB ───────────────────────────────────────────────────────
 function switchTab(tab) {
   activeTab = tab;
-  ["master","pending","analytics"].forEach(t => {
+  ["master","pending","analytics","settings"].forEach(t => {
     document.getElementById("tab-"+t).style.display = t===tab ? "" : "none";
     const tabBtn = document.querySelector(`[data-tab="${t}"]`);
     if (tabBtn) tabBtn.classList.toggle("active", t===tab);
   });
   if (tab==="analytics") renderAnalytics();
+  if (tab==="settings") renderSettings();
+}
+
+function renderSettings() {
+  const waEl = document.getElementById("settingWaLink");
+  const shopEl = document.getElementById("settingShopName");
+  const countryEl = document.getElementById("settingCountry");
+  if (waEl) waEl.textContent = (typeof DELIVERY_GROUP_LINK !== "undefined" && DELIVERY_GROUP_LINK !== "YOUR_WHATSAPP_GROUP_INVITE_LINK") ? DELIVERY_GROUP_LINK : "⚠️ Not set yet";
+  if (shopEl) shopEl.textContent = typeof SHOP_NAME !== "undefined" ? SHOP_NAME : "—";
+  if (countryEl) countryEl.textContent = typeof COUNTRY_CODE !== "undefined" ? "+"+COUNTRY_CODE : "—";
 }
 
 function setGroup(g) {
   groupBy = g;
-  document.querySelectorAll(".gtbtn").forEach(b => b.classList.toggle("active", b.dataset.group===g));
+  document.querySelectorAll("[data-group]").forEach(b => b.classList.toggle("active", b.dataset.group===g));
   renderAnalytics();
 }
 
