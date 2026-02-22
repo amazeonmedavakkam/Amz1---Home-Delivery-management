@@ -856,41 +856,39 @@ function buildCustomerMessage(entry) {
 }
 
 function buildFollowUpMessage(customerName) {
-  const custPending = allEntries.filter(x => x.CustomerName === customerName && x.Status === "pending");
+  const custPending = allEntries
+    .filter(x => x.CustomerName === customerName && x.Status === "pending")
+    .slice().sort((a,b) => (a.Date||"").localeCompare(b.Date||""));
   if (!custPending.length) { showToast("No pending bills for this customer", "info"); return null; }
-  const totalDue = custPending.reduce((s,x) => s + Number(x.Amount||0), 0);
-  const oldest   = custPending.slice().sort((a,b)=>a.Date.localeCompare(b.Date))[0];
+  const totalDue    = custPending.reduce((s,x) => s + Number(x.Amount||0), 0);
+  const oldest      = custPending[0];
   const daysPending = Math.floor((Date.now() - new Date(oldest.Date)) / 86400000);
 
   const lines = [
-    `⚠️ *Payment Follow-up — ${SHOP_NAME}*`, ``,
-    `Dear ${customerName},`,
+    `⚠️ *Payment Reminder — ${SHOP_NAME}*`,
     ``,
-    `This is a gentle reminder that you have *${custPending.length} outstanding bill(s)* with us.`,
+    `Dear *${customerName}*,`,
+    ``,
+    `This is a gentle reminder that you have *${custPending.length} outstanding bill(s)* totalling *${fmtCur(totalDue)}*.`,
     ``,
     `📋 *Pending Bill Details:*`,
   ];
-  custPending.forEach((b,i) => {
-    lines.push(``, `*${i+1}. Bill No: ${b.BillNumber}*`);
-    lines.push(`   📅 Date: ${fmtDate(b.Date)}`);
-    lines.push(`   💰 Amount: *${fmtCur(b.Amount)}*`);
-    lines.push(`   💳 Mode: ${b.ExpectedPaymentMode || b.PaymentMode || "—"}`);
+
+  custPending.forEach((b, i) => {
+    lines.push(`${i+1}. Bill No: *${b.BillNumber}*  |  ${fmtDate(b.Date)}  |  *${fmtCur(b.Amount)}*`);
   });
+
   lines.push(
     ``,
-    `━━━━━━━━━━━━━━━━━`,
     `💰 *Total Outstanding: ${fmtCur(totalDue)}*`,
-    `━━━━━━━━━━━━━━━━━`,
+    daysPending > 0 ? `⏰ Oldest bill is *${daysPending} day(s)* old.` : ``,
     ``,
-    daysPending > 0 ? `⏰ Oldest bill is *${daysPending} day(s)* overdue.` : ``,
+    `Kindly make the payment at your earliest convenience and share the *payment screenshot* so we can update your account.`,
     ``,
-    `📸 Kindly make the payment and share the *screenshot of the transaction* with us so we can close your account immediately.`,
-    ``,
-    `Please settle the amount at your earliest convenience.`,
     `Thank you! 🙏`,
     `— *${SHOP_NAME}*`,
-  ).filter(l => l !== undefined);
-  return lines.join("\n");
+  );
+  return lines.filter(l => l !== undefined).join("\n");
 }
 
 function sendFollowUp(id) {
@@ -981,21 +979,27 @@ function openWhatsApp(phone, msg, photoFile, shareTitle) {
   }
 
   // Default: open WhatsApp direct chat with message pre-filled
-  window.open(waUrl, "_blank");
+  const _a = document.createElement("a");
+  _a.href = waUrl; _a.target = "_blank"; _a.rel = "noopener";
+  document.body.appendChild(_a); _a.click(); document.body.removeChild(_a);
   if (photoFile) showToast("📸 Photo ready — attach it manually in WhatsApp after it opens", "info");
 }
 
 function openSMS(phone, msg) {
-  const ph = (phone || "").replace(/\D/g,"");
-  if (!ph || ph.length < 10) {
+  const digits = (phone || "").replace(/\D/g,"");
+  if (!digits || digits.length < 10) {
     showToast("⚠️ Phone number missing or invalid — cannot open SMS", "error");
     return;
   }
-  // Build plain-text SMS (strip WhatsApp markdown bold/italic)
+  // Normalise same way as openWhatsApp — strip country code duplicate
+  let ph;
+  if      (digits.length === 12 && digits.startsWith("91")) ph = digits.slice(2);
+  else if (digits.length === 11 && digits.startsWith("0"))  ph = digits.slice(1);
+  else ph = digits;
   const plainMsg = msg.replace(/\*/g,"").replace(/~/g,"").replace(/_/g,"");
-  // Android uses ?body=, iOS uses &body= — using ? works on both via most browsers
   const smsUrl = `sms:+${COUNTRY_CODE}${ph}?body=${encodeURIComponent(plainMsg)}`;
-  const a = document.createElement("a"); a.href = smsUrl; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  const a = document.createElement("a"); a.href = smsUrl; a.target = "_blank";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
 
 function sendGroupAlertFromModal() {
@@ -1568,9 +1572,9 @@ function renderTimingChart(elId, data, mode) {
   }
   const color = mode==="processing" ? "#7C3AED" : "#0D9488";
   const label = mode==="processing" ? "Avg Processing (min)" : "Avg Delivery (min)";
-  drawSvgChart(elId, [
-    { name:label, color, data: rows.map(([k,v])=>({k, v:Math.round(v.total/v.count)})) },
-  ], { yFmt: v => Math.round(v)+" m" });
+  drawBarChart(elId, rows, [
+    { name:label, color, valFn: v => Math.round(v.total/v.count) },
+  ], { yFmt: v => Math.round(v)+"m" });
 }
 
 // ── FILTERS ───────────────────────────────────────────────────
@@ -1881,8 +1885,16 @@ function setGroup(g) {
 function fmtCur(n) { return "₹" + Number(n||0).toLocaleString("en-IN"); }
 function fmtDate(d) {
   if (!d) return "—";
-  try { return new Date(d).toLocaleDateString("en-IN",{day:"2-digit",month:"short",year:"numeric"}); }
-  catch { return d; }
+  try {
+    let str = String(d);
+    // Google Sheets sometimes returns "Sat Jan 15 2025 00:00:00 GMT+0530 (IST)"
+    // Parse to a Date then format using LOCAL date parts to avoid timezone shift
+    const dt = new Date(str);
+    if (isNaN(dt)) return str;
+    // Use getFullYear/Month/Date (local) to avoid UTC-vs-local drift
+    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    return `${String(dt.getDate()).padStart(2,"0")} ${months[dt.getMonth()]} ${dt.getFullYear()}`;
+  } catch { return String(d); }
 }
 // Format a time string "HH:MM" → "10:20 AM"
 // Also handles Google Sheets returning Date objects serialised as strings like
