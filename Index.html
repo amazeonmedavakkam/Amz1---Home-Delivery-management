@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>DeliverEase — Home Delivery Management</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Lora:wght@600;700&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --green-900: #14532D;
+    --green-800: #166534;
+    --green-700: #15803D;
+    --green-600: #16A34A;
+    --green-100: #DCFCE7;
+    --green-50 : #F0FDF4;
+    --amber    : #F59E0B;
+    --amber-bg : #FFFBEB;
+    --red      : #DC2626;
+    --red-bg   : #FEF2F2;
+    --blue     : #1D4ED8;
+    --blue-bg  : #EFF6FF;
+    --orange   : #EA580C;
+    --orange-bg: #FFF7ED;
+    --purple   : #7C3AED;
+    --purple-bg: #F5F3FF;
+    --teal     : #0D9488;
+    --teal-bg  : #F0FDFA;
+    --slate-800: #1E293B;
+    --slate-600: #475569;
+    --slate-400: #94A3B8;
+    --slate-200: #E2E8F0;
+    --slate-100: #F1F5F9;
+    --slate-50 : #F8FAFC;
+    --white    : #ffffff;
+    --shadow   : 0 1px 8px rgba(0,0,0,.07);
+    --shadow-lg: 0 8px 30px rgba(0,0,0,.12);
+    --radius   : 14px;
+  }
+  body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--green-50); color: var(--slate-800); min-height: 100vh; }
+  button { font-family: inherit; cursor: pointer; }
+  input, select, textarea { font-family: inherit; }
+
+  /* ── Header ── */
+  .header {
+    background: linear-gradient(135deg, var(--green-900) 0%, var(--green-800) 60%, var(--green-700) 100%);
+    padding: 0 24px;
+    box-shadow: 0 4px 20px rgba(21,128,61,.35);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .header-inner { max-width: 1400px; margin: 0 auto; }
+  .header-top { display: flex; align-items: center; justify-content: space-between; padding: 16px 0 0; gap: 12px; flex-wrap: wrap; }
+  .logo { display: flex; align-items: center; gap: 10px; }
+  .logo-icon { font-size: 30px; }
+  .logo-title { font-family: 'Lora', serif; font-size: 22px; color: #fff; font-weight: 700; }
+  .logo-sub { font-size: 11px; color: #86EFAC; font-weight: 600; letter-spacing: .04em; }
+  .header-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .header-stats { display: flex; gap: 20px; }
+  .hstat { text-align: right; }
+  .hstat-label { font-size: 10px; color: #86EFAC; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+  .hstat-value { font-size: 20px; font-weight: 800; color: #FDE68A; }
+  .hstat-value.white { color: #fff; font-size: 18px; }
+  .btn-add { padding: 10px 20px; border-radius: 10px; border: 2px solid rgba(255,255,255,.3); background: rgba(255,255,255,.15); font-size: 14px; font-weight: 700; color: #fff; backdrop-filter: blur(8px); transition: background .2s; }
+  .btn-add:hover { background: rgba(255,255,255,.28); }
+  .btn-sync { padding: 10px 16px; border-radius: 10px; border: 2px solid rgba(255,255,255,.2); background: rgba(255,255,255,.1); font-size: 13px; font-weight: 600; color: #86EFAC; }
+  .btn-sync:hover { background: rgba(255,255,255,.2); }
+
+  /* ── Tabs ── */
+  .tabs { display: flex; gap: 4px; margin-top: 14px; }
+  .tab { padding: 10px 18px; border: none; border-radius: 8px 8px 0 0; font-size: 13px; font-weight: 600; background: transparent; color: rgba(255,255,255,.65); transition: all .2s; position: relative; }
+  .tab.active { background: #fff; color: var(--green-800); }
+  .tab:hover:not(.active) { color: #fff; background: rgba(255,255,255,.12); }
+  .tab-badge { position: absolute; top: 6px; right: 6px; background: var(--amber); color: #fff; font-size: 9px; font-weight: 800; padding: 1px 5px; border-radius: 10px; }
+
+  /* ── Main ── */
+  .main { max-width: 1400px; margin: 0 auto; padding: 24px; }
+
+  /* ── Card ── */
+  .card { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+  .card-header { padding: 16px 20px; border-bottom: 1px solid var(--slate-100); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+  .card-title { font-size: 15px; font-weight: 700; color: var(--slate-800); }
+  .card-title span { color: var(--slate-400); font-weight: 400; font-size: 13px; margin-left: 6px; }
+
+  /* ── Stat Cards ── */
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; margin-bottom: 18px; }
+  .stat-card { border-radius: var(--radius); padding: 16px 18px; }
+  .stat-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; margin-bottom: 8px; }
+  .stat-value { font-size: 22px; font-weight: 800; color: var(--slate-800); }
+
+  /* ── Filter Bar ── */
+  .filter-bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .filter-input { border: 1.5px solid var(--slate-200); border-radius: 8px; padding: 7px 12px; font-size: 13px; outline: none; background: var(--slate-50); color: var(--slate-800); min-width: 150px; }
+  .filter-input:focus { border-color: var(--green-600); }
+  .btn-clear { padding: 7px 12px; border-radius: 8px; border: 1.5px solid #FCA5A5; background: var(--red-bg); font-size: 12px; font-weight: 600; color: var(--red); }
+
+  /* ── Table ── */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; min-width: 1200px; }
+  thead tr { background: var(--slate-50); }
+  th { padding: 10px 11px; text-align: left; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--slate-400); border-bottom: 1px solid var(--slate-100); white-space: nowrap; }
+  td { padding: 10px 11px; font-size: 12px; color: var(--slate-800); border-bottom: 1px solid var(--slate-100); vertical-align: middle; }
+  tbody tr:hover { background: var(--green-50); }
+  .td-bill { font-weight: 700; color: var(--blue); }
+  .td-name { font-weight: 600; }
+  .td-amount { font-weight: 800; }
+  .td-actions { white-space: nowrap; }
+  .badge-mode { background: var(--blue-bg); color: var(--blue); padding: 2px 7px; border-radius: 12px; font-size: 10px; font-weight: 700; white-space: nowrap; }
+  .badge-expected { background: var(--orange-bg); color: var(--orange); padding: 2px 7px; border-radius: 12px; font-size: 10px; font-weight: 700; white-space: nowrap; }
+  .badge-status { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; }
+  .badge-pending  { background: #FEF3C7; color: #92400E; }
+  .badge-received { background: var(--green-100); color: #065F46; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+  .dot-pending  { background: var(--amber); }
+  .dot-received { background: #10B981; }
+
+  /* ── Action Buttons ── */
+  .act-btn { border: none; border-radius: 6px; padding: 4px 7px; font-size: 11px; font-weight: 700; margin-right: 3px; cursor: pointer; }
+  .act-btn-receive { background: var(--green-100); color: #065F46; }
+  .act-btn-wa      { background: #DCFCE7; color: var(--green-600); }
+  .act-btn-group   { background: var(--orange-bg); color: var(--orange); }
+  .act-btn-edit    { background: var(--blue-bg); color: var(--blue); }
+  .act-btn-del     { background: var(--red-bg); color: var(--red); }
+
+  /* ── Empty State ── */
+  .empty { padding: 60px; text-align: center; color: var(--slate-400); }
+  .empty-icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-text { font-size: 15px; font-weight: 600; }
+
+  /* ── Modal ── */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(15,23,42,.6); backdrop-filter: blur(4px); z-index: 500; display: flex; align-items: center; justify-content: center; padding: 16px; }
+  .modal { background: #fff; border-radius: 16px; width: 100%; max-width: 720px; max-height: 92vh; overflow-y: auto; box-shadow: var(--shadow-lg); }
+  .modal-head { padding: 20px 28px 16px; border-bottom: 1px solid var(--slate-100); display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: #fff; z-index: 1; }
+  .modal-title { font-family: 'Lora', serif; font-size: 18px; font-weight: 700; color: var(--slate-800); }
+  .modal-close { background: none; border: none; font-size: 22px; color: var(--slate-400); line-height: 1; cursor: pointer; }
+  .modal-body { padding: 24px 28px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group.full { grid-column: 1 / -1; }
+  .form-label { font-size: 11px; font-weight: 700; color: var(--slate-400); text-transform: uppercase; letter-spacing: .06em; }
+  .form-control { border: 1.5px solid var(--slate-200); border-radius: 8px; padding: 9px 12px; font-size: 14px; outline: none; color: var(--slate-800); background: var(--slate-50); transition: border-color .2s; }
+  .form-control:focus { border-color: var(--green-600); background: #fff; }
+  .form-section-title { grid-column: 1 / -1; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; color: var(--green-700); padding: 8px 0 4px; border-bottom: 2px solid var(--green-100); margin-top: 4px; }
+  .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+  .btn-cancel { padding: 10px 22px; border-radius: 8px; border: 1.5px solid var(--slate-200); background: #fff; font-size: 14px; font-weight: 600; color: var(--slate-600); cursor: pointer; }
+  .btn-save { padding: 10px 28px; border-radius: 8px; border: none; background: linear-gradient(135deg, var(--green-600), var(--green-800)); font-size: 14px; font-weight: 700; color: #fff; box-shadow: 0 4px 12px rgba(22,163,74,.3); cursor: pointer; }
+
+  /* ── Post-Save Modal ── */
+  .post-save-info { background: var(--green-50); border: 1.5px solid var(--green-100); border-radius: 10px; padding: 14px 16px; margin-bottom: 20px; font-size: 14px; color: var(--green-800); line-height: 1.6; }
+  .post-save-btn { width: 100%; padding: 14px; border-radius: 10px; border: none; font-size: 15px; font-weight: 700; color: #fff; cursor: pointer; margin-bottom: 10px; transition: opacity .2s; }
+  .post-save-btn:hover { opacity: .9; }
+  .post-save-btn.wa-customer { background: linear-gradient(135deg, #25D366, #128C7E); }
+  .post-save-btn.wa-group { background: linear-gradient(135deg, #FF6B35, #F59E0B); }
+  .post-save-tip { font-size: 11px; color: var(--slate-400); text-align: center; margin-top: 10px; line-height: 1.5; }
+
+  /* ── Analytics ── */
+  .analytics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .bar-row { margin-bottom: 14px; }
+  .bar-meta { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; }
+  .bar-key { font-weight: 600; color: var(--slate-800); }
+  .bar-val { color: var(--slate-400); }
+  .bar-track { height: 12px; border-radius: 6px; background: var(--slate-100); overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 6px; background: linear-gradient(90deg, var(--green-600), #4ADE80); }
+  .bar-legend { display: flex; gap: 14px; margin-top: 4px; font-size: 11px; color: var(--slate-400); }
+
+  /* ── Summary ── */
+  .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .summary-row { display: flex; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid var(--slate-50); font-size: 14px; }
+  .summary-key { color: var(--slate-600); font-weight: 500; }
+
+  /* ── Setup Banner ── */
+  .setup-banner { background: #FEF3C7; border: 1.5px solid #FCD34D; border-radius: var(--radius); padding: 16px 20px; margin-bottom: 20px; display: flex; align-items: flex-start; gap: 12px; }
+  .setup-banner-icon { font-size: 22px; flex-shrink: 0; }
+  .setup-banner-title { font-size: 14px; font-weight: 700; color: #92400E; margin-bottom: 4px; }
+  .setup-banner-text { font-size: 13px; color: #92400E; line-height: 1.5; }
+  .setup-banner a { color: var(--blue); font-weight: 600; }
+
+  /* ── Bill photo preview ── */
+  .bill-preview-img { max-width: 100%; max-height: 140px; border-radius: 8px; object-fit: cover; border: 1.5px solid var(--slate-200); display: block; margin-top: 8px; }
+  .photo-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--orange-bg); color: var(--orange); padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; margin-top: 8px; }
+
+  /* ── Spinner & Toast ── */
+  .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; vertical-align: middle; margin-right: 6px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .toast { position: fixed; bottom: 24px; right: 24px; padding: 12px 24px; border-radius: 12px; font-size: 14px; font-weight: 600; color: #fff; box-shadow: var(--shadow-lg); z-index: 9999; animation: slideUp .25s ease; max-width: 320px; }
+  .toast-success { background: var(--green-700); }
+  .toast-error   { background: var(--red); }
+  .toast-info    { background: var(--blue); }
+  @keyframes slideUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+
+  /* ── Received Modal ── */
+  .confirm-text { font-size: 14px; color: var(--slate-600); margin-bottom: 14px; }
+
+  /* ── Group Toggle ── */
+  .group-toggle { display: flex; gap: 6px; }
+  .gtbtn { padding: 7px 15px; border-radius: 8px; border: 1.5px solid var(--slate-200); background: #fff; font-size: 12px; font-weight: 700; color: var(--slate-600); cursor: pointer; }
+  .gtbtn.active { background: var(--green-800); color: #fff; border-color: var(--green-800); }
+
+  /* ── Timing Metric Card ── */
+  .timing-card { border-radius: var(--radius); padding: 16px 18px; display: flex; flex-direction: column; gap: 4px; }
+  .timing-icon { font-size: 20px; margin-bottom: 4px; }
+  .timing-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; }
+  .timing-value { font-size: 22px; font-weight: 800; color: var(--slate-800); }
+  .timing-sub { font-size: 11px; color: var(--slate-400); }
+
+  @media (max-width: 640px) {
+    .form-grid, .analytics-grid, .summary-grid { grid-template-columns: 1fr; }
+    .header-right { gap: 8px; }
+    .hstat-value { font-size: 16px; }
+    .header-stats { gap: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══ HEADER ══ -->
+<header class="header">
+  <div class="header-inner">
+    <div class="header-top">
+      <div class="logo">
+        <span class="logo-icon">🚚</span>
+        <div>
+          <div class="logo-title">DeliverEase</div>
+          <div class="logo-sub">Home Delivery Management System</div>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="header-stats">
+          <div class="hstat">
+            <div class="hstat-label">Active Orders</div>
+            <div class="hstat-value white" id="headerActive">0</div>
+          </div>
+          <div class="hstat">
+            <div class="hstat-label">Pending Amount</div>
+            <div class="hstat-value" id="headerPending">₹0</div>
+          </div>
+        </div>
+        <button class="btn-sync" onclick="loadData()" id="syncBtn">🔄 Sync</button>
+        <button class="btn-add" onclick="openAddModal()">+ New Order</button>
+      </div>
+    </div>
+    <div class="tabs">
+      <button class="tab active" data-tab="master"    onclick="switchTab('master')">📋 All Orders</button>
+      <button class="tab"        data-tab="pending"   onclick="switchTab('pending')">⏳ Pending <span class="tab-badge" id="pendingBadge" style="display:none"></span></button>
+      <button class="tab"        data-tab="summary"   onclick="switchTab('summary')">📊 Summary</button>
+      <button class="tab"        data-tab="analytics" onclick="switchTab('analytics')">📈 Analytics</button>
+    </div>
+  </div>
+</header>
+
+<!-- ══ MAIN ══ -->
+<main class="main">
+
+  <!-- Setup Banner -->
+  <div class="setup-banner" id="setupBanner">
+    <span class="setup-banner-icon">⚙️</span>
+    <div>
+      <div class="setup-banner-title">Setup Required — Connect your Google Sheet &amp; configure constants</div>
+      <div class="setup-banner-text">
+        1. Replace <strong>YOUR_APPS_SCRIPT_WEB_APP_URL</strong> with your deployed Google Apps Script URL.<br>
+        2. Set <strong>SHOP_NAME</strong> to your store name.<br>
+        3. Set <strong>DELIVERY_GROUP_PHONE</strong> to your delivery WhatsApp group admin/number (for direct alerts).<br>
+        Once connected, click <strong>🔄 Sync</strong> to load your data.
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ALL ORDERS TAB ── -->
+  <div id="tab-master">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">All Orders <span id="masterCount"></span></div>
+        <div class="filter-bar" id="masterFilters"></div>
+      </div>
+      <div class="table-wrap"><table id="masterTable"><thead></thead><tbody></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- ── PENDING TAB ── -->
+  <div id="tab-pending" style="display:none">
+    <div class="stat-grid" id="pendingStats"></div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Pending Orders <span id="pendingCount"></span></div>
+        <div class="filter-bar" id="pendingFilters"></div>
+      </div>
+      <div class="table-wrap"><table id="pendingTable"><thead></thead><tbody></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- ── SUMMARY TAB ── -->
+  <div id="tab-summary" style="display:none">
+    <div class="summary-grid">
+      <div class="card" style="padding:24px">
+        <div class="card-title" style="margin-bottom:18px">💰 Order Overview</div>
+        <div id="summaryOverview"></div>
+      </div>
+      <div class="card" style="padding:24px">
+        <div class="card-title" style="margin-bottom:18px">💳 By Payment Mode (Pending)</div>
+        <div id="summaryByMode"></div>
+        <div class="card-title" style="margin:24px 0 16px">👤 Top Pending Customers</div>
+        <div id="summaryTopCustomers"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ANALYTICS TAB ── -->
+  <div id="tab-analytics" style="display:none">
+
+    <!-- Timing & Volume Metrics -->
+    <div class="stat-grid" id="timingMetrics" style="margin-bottom:18px"></div>
+
+    <!-- Filters & Group Toggle -->
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+      <div class="filter-bar" id="analyticsFilters"></div>
+      <div class="group-toggle">
+        <button class="gtbtn active" data-group="day"   onclick="setGroup('day')">Daily</button>
+        <button class="gtbtn"        data-group="week"  onclick="setGroup('week')">Weekly</button>
+        <button class="gtbtn"        data-group="month" onclick="setGroup('month')">Monthly</button>
+      </div>
+    </div>
+
+    <!-- Row 1: Value + Count charts -->
+    <div class="analytics-grid">
+      <div class="card" style="padding:24px">
+        <div class="card-title" style="margin-bottom:18px" id="allChartTitle">Order Value — Daily</div>
+        <div id="allChart"></div>
+      </div>
+      <div class="card" style="padding:24px">
+        <div class="card-title" style="margin-bottom:18px" id="countChartTitle">Orders Count — Daily</div>
+        <div id="countChart"></div>
+      </div>
+    </div>
+
+    <!-- Row 2: Processing & Delivery Time Trends -->
+    <div class="analytics-grid" style="margin-top:18px">
+      <div class="card" style="padding:24px">
+        <div class="card-title" style="margin-bottom:4px">⚡ Order Processing Time Trend</div>
+        <div style="font-size:11px;color:var(--slate-400);margin-bottom:14px">Order Received → Billed (avg minutes)</div>
+        <div id="processingChart"></div>
+      </div>
+      <div class="card" style="padding:24px">
+        <div class="card-title" style="margin-bottom:4px">🚚 Order Delivery Time Trend</div>
+        <div style="font-size:11px;color:var(--slate-400);margin-bottom:14px">Billed → Delivered (avg minutes, received orders)</div>
+        <div id="deliveryChart"></div>
+      </div>
+    </div>
+
+    <!-- Staff Performance -->
+    <div class="card" style="padding:24px;margin-top:18px">
+      <div class="card-title" style="margin-bottom:18px">👥 Staff Performance</div>
+      <div id="staffStats" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px"></div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ══ MODALS ══ -->
+
+<!-- Add / Edit Entry Modal -->
+<div class="modal-overlay" id="entryModal" style="display:none" onclick="closeModalOnBg(event,'entryModal')">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title" id="modalTitle">Add New Order</div>
+      <button class="modal-close" onclick="closeModal('entryModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid" id="entryForm"></div>
+      <div class="modal-footer">
+        <button class="btn-cancel" onclick="closeModal('entryModal')">Cancel</button>
+        <button class="btn-save"   onclick="saveEntry()" id="saveBtn">Save Order</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Mark Received Modal -->
+<div class="modal-overlay" id="receivedModal" style="display:none" onclick="closeModalOnBg(event,'receivedModal')">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-head">
+      <div class="modal-title">Mark Payment Received</div>
+      <button class="modal-close" onclick="closeModal('receivedModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <p class="confirm-text">Who received this payment?</p>
+      <input class="form-control" id="receivedByInput" placeholder="Enter name..." style="width:100%" />
+      <div class="modal-footer">
+        <button class="btn-cancel" onclick="closeModal('receivedModal')">Cancel</button>
+        <button class="btn-save"   onclick="confirmReceived()" id="receiveConfirmBtn">Confirm Received ✓</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ✅ Post-Save Actions Modal -->
+<div class="modal-overlay" id="postSaveModal" style="display:none" onclick="closeModalOnBg(event,'postSaveModal')">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-head">
+      <div class="modal-title">✅ Order Entry Saved!</div>
+      <button class="modal-close" onclick="closePostSaveModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="post-save-info" id="postSaveInfo"></div>
+      <div id="postSavePhotoNote" style="display:none">
+        <div class="photo-badge">📸 Bill photo attached — will be shared with customer</div>
+      </div>
+      <p style="font-size:12px;font-weight:700;color:var(--slate-600);margin:18px 0 12px;text-transform:uppercase;letter-spacing:.06em">Quick Actions</p>
+      <button class="post-save-btn wa-customer" onclick="shareWithCustomer()">
+        📱 Send Bill to Customer via WhatsApp
+      </button>
+      <button class="post-save-btn wa-group" onclick="sendGroupAlertFromModal()">
+        🚚 Alert Delivery Team via WhatsApp
+      </button>
+      <button class="btn-cancel" style="width:100%;padding:11px;text-align:center" onclick="closePostSaveModal()">
+        Done — Skip for now
+      </button>
+      <p class="post-save-tip">
+        💡 On mobile, the bill photo can be shared directly via WhatsApp.<br>
+        On desktop, WhatsApp opens with the message — attach the image manually.
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SCRIPT ══ -->
+<script>
+// ╔══════════════════════════════════════════════════════════╗
+// ║  🔧  CONFIGURATION — UPDATE THESE VALUES                ║
+// ╚══════════════════════════════════════════════════════════╝
+const APPS_SCRIPT_URL      = "https://script.google.com/macros/s/AKfycbwkupivAAta3mVzzAP2pg_rnXBGCAQT1DLw19tWqfMt_O35mPCE8Uw784WFZW43EtcHNg/exec";
+const SHOP_NAME            = "Amaze On";
+const DELIVERY_GROUP_PHONE = "919717762233; 918610456529;917395865732;919751745184"; // e.g. "919876543210"
+const COUNTRY_CODE         = "91"; // India
+// ────────────────────────────────────────────────────────────
+
+const DELIVERY_MODES = ["Paytm", "Cash", "Phonepe", "Razorpay", "Card", "Sodexo"];
+
+const FORM_FIELDS = [
+  // ── Order Details ──
+  { key:"_s1",               label:"📦 Order Details",    type:"section" },
+  { key:"Date",              label:"Order Date",           type:"date",     half:true },
+  { key:"BillNumber",        label:"Bill Number",          type:"text",     half:true },
+  { key:"CustomerName",      label:"Customer Name",        type:"text",     half:true },
+  { key:"Phone",             label:"Phone Number",         type:"tel",      half:true },
+  { key:"Amount",            label:"Amount (₹)",           type:"number",   half:true },
+  { key:"ExpectedPaymentMode", label:"Expected Payment Mode (by Customer)", type:"select", half:true, options: DELIVERY_MODES },
+  // ── Timing ──
+  { key:"_s2",               label:"⏱ Timing",             type:"section" },
+  { key:"TakenBy",           label:"Order Taken By",       type:"text",     half:true },
+  { key:"OrderTime",         label:"Order Received Time",  type:"time",     half:true },
+  { key:"BilledTime",        label:"Order Billed Time",    type:"time",     half:true },
+  { key:"DeliveryTime",      label:"Delivery Time",        type:"time",     half:true },
+  { key:"DeliveryPerson",    label:"Delivery Person",      type:"text",     half:true },
+  { key:"PaymentMode",       label:"Actual Payment Mode",  type:"select",   half:true, options: DELIVERY_MODES, editOnly:true },
+  // ── Edit-only ──
+  { key:"Status",            label:"Status",               type:"select",   half:true, options:["pending","received"], editOnly:true },
+  { key:"ReceivedBy",        label:"Received By",          type:"text",     half:true, editOnly:true },
+  // ── Bill Photo (add-only) ──
+  { key:"_s3",               label:"📸 Bill Photo",        type:"section",  addOnly:true },
+  { key:"BillPhoto",         label:"Attach Bill Image (shared via WhatsApp, not stored)", type:"file", half:false, addOnly:true },
+  // ── Notes ──
+  { key:"Notes",             label:"Notes",                type:"textarea", half:false },
+];
+
+let allEntries    = [];
+let editingId     = null;
+let markId        = null;
+let lastSavedEntry = null;
+let billPhotoFile = null;
+let activeTab     = "master";
+let groupBy       = "day";
+let filters       = { master:{}, pending:{}, analytics:{} };
+
+// ── API ──────────────────────────────────────────────────────
+async function api(method, body) {
+  const isDemo = APPS_SCRIPT_URL === "https://script.google.com/macros/s/AKfycbwkupivAAta3mVzzAP2pg_rnXBGCAQT1DLw19tWqfMt_O35mPCE8Uw784WFZW43EtcHNg/execL";
+  if (isDemo) { showToast("Demo mode — connect your Google Sheet first", "info"); return null; }
+  try {
+    const opts = method === "GET" ? { method:"GET" } : { method:"POST", body: JSON.stringify(body) };
+    const res  = await fetch(APPS_SCRIPT_URL, opts);
+    const data = await res.json();
+    if (data.error) { showToast("Error: " + data.error, "error"); return null; }
+    return data;
+  } catch(e) { showToast("Network error: " + e.message, "error"); return null; }
+}
+
+async function loadData() {
+  const syncBtn = document.getElementById("syncBtn");
+  syncBtn.innerHTML = '<span class="spinner"></span>Syncing…';
+  syncBtn.disabled = true;
+  const data = await api("GET");
+  if (data && data.entries) {
+    allEntries = data.entries;
+    showToast("Synced " + allEntries.length + " orders ✓");
+  } else if (APPS_SCRIPT_URL === "https://script.google.com/macros/s/AKfycbwkupivAAta3mVzzAP2pg_rnXBGCAQT1DLw19tWqfMt_O35mPCE8Uw784WFZW43EtcHNg/exec") {
+    allEntries = getSampleData();
+  }
+  syncBtn.innerHTML = "🔄 Sync";
+  syncBtn.disabled = false;
+  renderAll();
+}
+
+// ── CRUD ─────────────────────────────────────────────────────
+async function saveEntry() {
+  const data = collectForm();
+  if (!data.CustomerName || !data.BillNumber || !data.Amount) {
+    showToast("Customer Name, Bill Number and Amount are required", "error"); return;
+  }
+  const btn = document.getElementById("saveBtn");
+  btn.innerHTML = '<span class="spinner"></span>Saving…';
+  btn.disabled = true;
+
+  if (editingId) {
+    data.ID = editingId;
+    const res = await api("POST", { action:"update", data });
+    if (res?.success) {
+      const idx = allEntries.findIndex(e => e.ID === editingId);
+      if (idx !== -1) allEntries[idx] = { ...allEntries[idx], ...data };
+      showToast("Order updated ✓");
+      closeModal("entryModal");
+      renderAll();
+    }
+    btn.innerHTML = "Save Changes";
+  } else {
+    data.Status = "pending";
+    data.PaymentMode = data.PaymentMode || data.ExpectedPaymentMode || "";
+    const isDemo = APPS_SCRIPT_URL === "https://script.google.com/macros/s/AKfycbwkupivAAta3mVzzAP2pg_rnXBGCAQT1DLw19tWqfMt_O35mPCE8Uw784WFZW43EtcHNg/exec";
+    let newId, newEntry;
+
+    if (isDemo) {
+      newId = "d_" + Date.now();
+      newEntry = { ...data, ID: newId };
+      allEntries.push(newEntry);
+      showToast("Entry added (demo mode) ✓");
+    } else {
+      const res = await api("POST", { action:"add", data });
+      if (!res?.success) { btn.innerHTML = "Save Order"; btn.disabled = false; return; }
+      newId = res.id;
+      newEntry = { ...data, ID: newId };
+      allEntries.push(newEntry);
+      showToast("Order added ✓");
+    }
+
+    lastSavedEntry = newEntry;
+    closeModal("entryModal");
+    renderAll();
+    openPostSaveModal();
+    btn.innerHTML = "Save Order";
+  }
+  btn.disabled = false;
+}
+
+async function deleteEntry(id) {
+  if (!confirm("Delete this order entry?")) return;
+  const res = await api("POST", { action:"delete", id });
+  const isDemo = APPS_SCRIPT_URL === "https://script.google.com/macros/s/AKfycbwkupivAAta3mVzzAP2pg_rnXBGCAQT1DLw19tWqfMt_O35mPCE8Uw784WFZW43EtcHNg/exec";
+  if (res?.success || isDemo) {
+    allEntries = allEntries.filter(e => e.ID !== id);
+    showToast("Deleted", "error");
+    renderAll();
+  }
+}
+
+async function confirmReceived() {
+  const name = document.getElementById("receivedByInput").value.trim();
+  const btn  = document.getElementById("receiveConfirmBtn");
+  btn.innerHTML = '<span class="spinner"></span>';
+  btn.disabled = true;
+  const data = { ID: markId, Status: "received", ReceivedBy: name };
+  const isDemo = APPS_SCRIPT_URL === "https://script.google.com/macros/s/AKfycbwkupivAAta3mVzzAP2pg_rnXBGCAQT1DLw19tWqfMt_O35mPCE8Uw784WFZW43EtcHNg/exec";
+  const res  = await api("POST", { action:"update", data });
+  if (res?.success || isDemo) {
+    const idx = allEntries.findIndex(e => e.ID === markId);
+    if (idx !== -1) { allEntries[idx].Status = "received"; allEntries[idx].ReceivedBy = name; }
+    showToast("Marked as received ✓");
+    closeModal("receivedModal");
+    renderAll();
+  }
+  btn.innerHTML = "Confirm Received ✓";
+  btn.disabled = false;
+}
+
+// ── POST-SAVE MODAL ───────────────────────────────────────────
+function openPostSaveModal() {
+  const e = lastSavedEntry;
+  if (!e) return;
+
+  const custPending = allEntries.filter(x => x.CustomerName === e.CustomerName && x.Status === "pending");
+  const totalDue    = custPending.reduce((s,x) => s + Number(x.Amount||0), 0);
+
+  document.getElementById("postSaveInfo").innerHTML =
+    `<strong>📦 ${e.BillNumber}</strong> — <strong>${e.CustomerName}</strong><br>` +
+    `📞 ${e.Phone || "—"} &nbsp;|&nbsp; 💰 ${fmtCur(e.Amount)}<br>` +
+    `💳 Expected Payment: <strong>${e.ExpectedPaymentMode || "—"}</strong>` +
+    (custPending.length > 1 ? `<br><span style="color:#DC2626;font-weight:700">⚠️ ${custPending.length} pending bills total: ${fmtCur(totalDue)}</span>` : "");
+
+  const photoNote = document.getElementById("postSavePhotoNote");
+  photoNote.style.display = billPhotoFile ? "block" : "none";
+
+  document.getElementById("postSaveModal").style.display = "flex";
+}
+
+function closePostSaveModal() {
+  document.getElementById("postSaveModal").style.display = "none";
+  billPhotoFile  = null;
+  lastSavedEntry = null;
+}
+
+// ── WHATSAPP ─────────────────────────────────────────────────
+function buildCustomerMessage(entry) {
+  const custPending = allEntries.filter(x => x.CustomerName === entry.CustomerName && x.Status === "pending");
+  const totalDue    = custPending.reduce((s,x) => s + Number(x.Amount||0), 0);
+
+  const lines = [
+    `🧾 *Bill from ${SHOP_NAME}*`, ``,
+    `Dear ${entry.CustomerName},`,
+  ];
+
+  if (custPending.length > 1) {
+    lines.push(`You have ${custPending.length} outstanding bills:`, ``);
+    custPending.forEach((b,i) => lines.push(`${i+1}. Bill No: ${b.BillNumber} | ${fmtDate(b.Date)} | ${fmtCur(b.Amount)}`));
+    lines.push(``, `💰 *Total Outstanding: ${fmtCur(totalDue)}*`);
+  } else {
+    lines.push(
+      `Please find your bill details below:`, ``,
+      `📄 Bill No: ${entry.BillNumber}`,
+      `📅 Date: ${fmtDate(entry.Date)}`,
+      `💰 Amount: ${fmtCur(entry.Amount)}`,
+    );
+  }
+
+  lines.push(
+    ``,
+    `💳 Payment Mode: ${entry.ExpectedPaymentMode || entry.PaymentMode || "—"}`,
+    ``,
+    `Kindly make the payment at your earliest convenience.`,
+    `Thank you for your business! 🙏`,
+  );
+  return lines.join("\n");
+}
+
+function buildGroupAlertMessage(entry) {
+  const custPending = allEntries.filter(x => x.CustomerName === entry.CustomerName && x.Status === "pending");
+  const totalDue    = custPending.reduce((s,x) => s + Number(x.Amount||0), 0);
+
+  const lines = [
+    `🚚 *Home Delivery Order Received!*`, ``,
+    `📄 *Bill No:* ${entry.BillNumber}`,
+    `👤 *Customer:* ${entry.CustomerName}`,
+    `📞 *Mobile:* ${entry.Phone || "—"}`,
+    `💰 *Amount:* ${fmtCur(entry.Amount)}`,
+    `💳 *Payment Mode (Communicated by Customer):* ${entry.ExpectedPaymentMode || "—"}`,
+    `⏰ *Order Time:* ${entry.OrderTime || "—"}`,
+    `🏷️ *Taken By:* ${entry.TakenBy || "—"}`,
+  ];
+
+  if (custPending.length > 1) {
+    lines.push(``, `📋 *All Pending Bills for ${entry.CustomerName}:*`);
+    custPending.forEach((b,i) => lines.push(`  ${i+1}. Bill: ${b.BillNumber} | ${fmtDate(b.Date)} | ${fmtCur(b.Amount)}`));
+    lines.push(`💰 *Total Outstanding: ${fmtCur(totalDue)}*`);
+  }
+
+  lines.push(``, `Please proceed with delivery. Thank you! 🙏`);
+  return lines.join("\n");
+}
+
+function shareWithCustomer() {
+  const e = lastSavedEntry;
+  if (!e) return;
+  const ph  = (e.Phone || "").replace(/\D/g,"");
+  const msg = buildCustomerMessage(e);
+
+  if (billPhotoFile && navigator.canShare) {
+    const shareData = { files: [billPhotoFile], text: msg, title: `Bill - ${e.BillNumber}` };
+    if (navigator.canShare(shareData)) {
+      navigator.share(shareData)
+        .then(() => showToast("Bill shared! ✓"))
+        .catch(err => {
+          if (err.name !== "AbortError") {
+            window.open(`https://wa.me/${COUNTRY_CODE}${ph}?text=${encodeURIComponent(msg)}`, "_blank");
+            showToast("📸 Please attach the bill image manually in WhatsApp", "info");
+          }
+        });
+      return;
+    }
+  }
+
+  if (billPhotoFile) showToast("📸 Attach bill image manually after WhatsApp opens", "info");
+  window.open(`https://wa.me/${COUNTRY_CODE}${ph}?text=${encodeURIComponent(msg)}`, "_blank");
+}
+
+function sendGroupAlertFromModal() {
+  if (lastSavedEntry) sendGroupAlert(lastSavedEntry.ID);
+}
+
+function sendGroupAlert(id) {
+  const e = allEntries.find(x => x.ID === id);
+  if (!e) return;
+  const msg = buildGroupAlertMessage(e);
+
+  const raw = (DELIVERY_GROUP_PHONE || "").replace(/\D/g,"");
+  if (raw && raw !== "YOURDELIVERYGROUPPHONE") {
+    window.open(`https://wa.me/${raw}?text=${encodeURIComponent(msg)}`, "_blank");
+  } else {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(msg).then(() =>
+        showToast("📋 Alert copied! Paste into your delivery WhatsApp group.", "info")
+      ).catch(() => prompt("Copy this alert to your delivery WhatsApp group:", msg));
+    } else {
+      prompt("Copy this alert to your delivery WhatsApp group:", msg);
+    }
+  }
+}
+
+function sendWhatsApp(id) {
+  const e = allEntries.find(x => x.ID === id);
+  if (!e) return;
+  const ph  = (e.Phone || "").replace(/\D/g,"");
+  const msg = buildCustomerMessage(e);
+  window.open(`https://wa.me/${COUNTRY_CODE}${ph}?text=${encodeURIComponent(msg)}`, "_blank");
+}
+
+// ── RENDER ALL ────────────────────────────────────────────────
+function renderAll() {
+  const pending      = allEntries.filter(e => e.Status === "pending");
+  const totalPending = pending.reduce((s,e) => s + Number(e.Amount||0), 0);
+
+  document.getElementById("headerActive").textContent  = pending.length;
+  document.getElementById("headerPending").textContent = fmtCur(totalPending);
+  const badge = document.getElementById("pendingBadge");
+  if (pending.length) { badge.textContent = pending.length; badge.style.display = "inline"; }
+  else badge.style.display = "none";
+
+  renderTable("masterTable",  "masterCount",  applyFilter(allEntries, filters.master),  false);
+  renderTable("pendingTable", "pendingCount", applyFilter(pending,    filters.pending), true);
+  renderPendingStats(pending);
+  renderSummary(allEntries, pending, totalPending);
+  if (activeTab === "analytics") renderAnalytics();
+  renderFilters();
+
+  if (APPS_SCRIPT_URL !== "https://script.google.com/macros/s/AKfycbwkupivAAta3mVzzAP2pg_rnXBGCAQT1DLw19tWqfMt_O35mPCE8Uw784WFZW43EtcHNg/exec")
+    document.getElementById("setupBanner").style.display = "none";
+}
+
+// ── TABLE ─────────────────────────────────────────────────────
+function renderTable(tableId, countId, data, pendingOnly) {
+  const table  = document.getElementById(tableId);
+  const cols   = ["Date","BillNumber","CustomerName","Phone","Amount","ExpectedPaymentMode","PaymentMode","TakenBy","OrderTime","BilledTime","DeliveryTime","DeliveryPerson","Status","Actions"];
+  const labels = ["Date","Bill No","Customer","Phone","Amount","Exp. Mode","Actual Mode","Taken By","Order Time","Billed Time","Del. Time","Del. Person","Status","Actions"];
+  table.querySelector("thead").innerHTML = `<tr>${labels.map(h=>`<th>${h}</th>`).join("")}</tr>`;
+  if (!data.length) {
+    table.querySelector("tbody").innerHTML = `<tr><td colspan="${cols.length}" class="empty"><div class="empty-icon">📭</div><div class="empty-text">No orders found</div></td></tr>`;
+    document.getElementById(countId).textContent = "(0)";
+    return;
+  }
+  document.getElementById(countId).textContent = `(${data.length})`;
+  table.querySelector("tbody").innerHTML = data.map(e => `
+    <tr>
+      <td>${fmtDate(e.Date)}</td>
+      <td class="td-bill">${e.BillNumber||"—"}</td>
+      <td class="td-name">${e.CustomerName||"—"}</td>
+      <td>${e.Phone||"—"}</td>
+      <td class="td-amount">${fmtCur(e.Amount)}</td>
+      <td><span class="badge-expected">${e.ExpectedPaymentMode||"—"}</span></td>
+      <td><span class="badge-mode">${e.PaymentMode||"—"}</span></td>
+      <td>${e.TakenBy||"—"}</td>
+      <td>${e.OrderTime||"—"}</td>
+      <td>${e.BilledTime||"—"}</td>
+      <td>${e.DeliveryTime||"—"}</td>
+      <td>${e.DeliveryPerson||"—"}</td>
+      <td><span class="badge-status ${e.Status==="pending"?"badge-pending":"badge-received"}"><span class="dot ${e.Status==="pending"?"dot-pending":"dot-received"}"></span>${e.Status==="pending"?"Pending":"Received"}</span></td>
+      <td class="td-actions">
+        ${e.Status==="pending"?`<button class="act-btn act-btn-receive" onclick="openReceiveModal('${e.ID}')" title="Mark Received">✓</button>`:""}
+        <button class="act-btn act-btn-wa"    onclick="sendWhatsApp('${e.ID}')"    title="WhatsApp Customer">📱</button>
+        <button class="act-btn act-btn-group" onclick="sendGroupAlert('${e.ID}')"  title="Alert Delivery Group">🚚</button>
+        <button class="act-btn act-btn-edit"  onclick="openEditModal('${e.ID}')"   title="Edit">✏️</button>
+        <button class="act-btn act-btn-del"   onclick="deleteEntry('${e.ID}')"     title="Delete">🗑</button>
+      </td>
+    </tr>
+  `).join("");
+}
+
+function renderPendingStats(pending) {
+  const total  = pending.reduce((s,e) => s + Number(e.Amount||0), 0);
+  const oldest = pending.length ? pending.slice().sort((a,b)=>a.Date.localeCompare(b.Date))[0].Date : null;
+  const today  = new Date().toISOString().split("T")[0];
+  const todayCnt = pending.filter(e=>e.Date===today).length;
+  document.getElementById("pendingStats").innerHTML = [
+    { label:"Pending Bills",      value: pending.length,   color:"#F59E0B", bg:"#FFFBEB" },
+    { label:"Total Amount Due",   value: fmtCur(total),    color:"#DC2626", bg:"#FEF2F2" },
+    { label:"Due Today",          value: todayCnt,         color:"#7C3AED", bg:"#F5F3FF" },
+    { label:"Oldest Pending",     value: oldest ? fmtDate(oldest) : "—", color:"#0D9488", bg:"#F0FDFA" },
+  ].map(c=>`
+    <div class="stat-card" style="background:${c.bg};border:1.5px solid ${c.color}22">
+      <div class="stat-label" style="color:${c.color}">${c.label}</div>
+      <div class="stat-value">${c.value}</div>
+    </div>
+  `).join("");
+}
+
+function renderSummary(all, pending, totalPending) {
+  const totalReceived = all.filter(e=>e.Status==="received").reduce((s,e)=>s+Number(e.Amount||0),0);
+  document.getElementById("summaryOverview").innerHTML = [
+    ["Total Orders",         all.length,                 "#1D4ED8"],
+    ["Pending Orders",       pending.length,             "#F59E0B"],
+    ["Delivered & Received", all.length-pending.length,  "#10B981"],
+    ["Total Pending Amount", fmtCur(totalPending),       "#DC2626"],
+    ["Total Received",       fmtCur(totalReceived),      "#10B981"],
+    ["Total Business Value", fmtCur(totalPending+totalReceived), "#7C3AED"],
+  ].map(([k,v,c])=>`<div class="summary-row"><span class="summary-key">${k}</span><span style="font-weight:800;color:${c}">${v}</span></div>`).join("");
+
+  const modeMap = {};
+  pending.forEach(e=>{const m=e.ExpectedPaymentMode||e.PaymentMode||"Other";modeMap[m]=(modeMap[m]||0)+Number(e.Amount||0);});
+  document.getElementById("summaryByMode").innerHTML = Object.entries(modeMap).sort(([,a],[,b])=>b-a).map(([mode,amt])=>`
+    <div style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+        <span style="font-weight:600">${mode}</span><span style="color:#64748B">${fmtCur(amt)}</span>
+      </div>
+      <div style="height:8px;border-radius:4px;background:#F1F5F9">
+        <div style="height:100%;width:${totalPending?(amt/totalPending*100):0}%;background:linear-gradient(90deg,#F59E0B,#FBBF24);border-radius:4px"></div>
+      </div>
+    </div>
+  `).join("") || "<p style='color:#94A3B8;font-size:13px'>No pending entries</p>";
+
+  const custMap = {};
+  pending.forEach(e=>{custMap[e.CustomerName]=(custMap[e.CustomerName]||0)+Number(e.Amount||0);});
+  document.getElementById("summaryTopCustomers").innerHTML = Object.entries(custMap).sort(([,a],[,b])=>b-a).slice(0,5).map(([name,amt])=>`
+    <div class="summary-row"><span class="summary-key">${name}</span><span style="font-weight:800;color:#DC2626">${fmtCur(amt)}</span></div>
+  `).join("") || "<p style='color:#94A3B8;font-size:13px'>No pending entries</p>";
+}
+
+// ── ANALYTICS ─────────────────────────────────────────────────
+function renderAnalytics() {
+  const fdata   = applyFilter(allEntries, filters.analytics);
+  const label   = groupBy==="day"?"Daily":groupBy==="week"?"Weekly":"Monthly";
+
+  renderTimingMetrics(fdata);
+  renderValueChart("allChart", fdata);
+  renderCountChart("countChart", fdata);
+  renderTimingChart("processingChart", fdata, "processing");
+  renderTimingChart("deliveryChart",   fdata, "delivery");
+
+  document.getElementById("allChartTitle").textContent   = `Order Value — ${label}`;
+  document.getElementById("countChartTitle").textContent = `Orders Count — ${label}`;
+
+  // Staff performance
+  const staffMap = {};
+  allEntries.forEach(e=>{
+    if (!e.TakenBy) return;
+    staffMap[e.TakenBy] = staffMap[e.TakenBy] || {total:0, pending:0, totalAmt:0};
+    staffMap[e.TakenBy].total++;
+    staffMap[e.TakenBy].totalAmt += Number(e.Amount||0);
+    if (e.Status==="pending") staffMap[e.TakenBy].pending++;
+  });
+  document.getElementById("staffStats").innerHTML = Object.entries(staffMap).map(([name,s])=>`
+    <div style="background:#F8FAFC;border-radius:12px;padding:16px;border:1.5px solid #E2E8F0">
+      <div style="font-weight:700;font-size:14px;margin-bottom:10px">👤 ${name}</div>
+      <div style="font-size:12px;color:#475569;margin-bottom:4px">Total Orders: <strong>${s.total}</strong></div>
+      <div style="font-size:12px;color:#F59E0B;margin-bottom:4px">Pending: <strong>${s.pending}</strong></div>
+      <div style="font-size:12px;color:#10B981">Value: <strong>${fmtCur(s.totalAmt)}</strong></div>
+    </div>
+  `).join("") || "<p style='color:#94A3B8;font-size:13px'>No data</p>";
+}
+
+function renderTimingMetrics(data) {
+  const today     = new Date().toISOString().split("T")[0];
+  const thisWeek  = getWeekKey(today);
+  const thisMonth = today.slice(0,7);
+
+  // Processing time: OrderTime → BilledTime
+  const procTimes = data
+    .filter(e => e.OrderTime && e.BilledTime)
+    .map(e => timeDiffMinutes(e.OrderTime, e.BilledTime))
+    .filter(t => t > 0 && t < 240);
+
+  // Delivery time: BilledTime → DeliveryTime (received orders only)
+  const delTimes = data
+    .filter(e => e.BilledTime && e.DeliveryTime && e.Status === "received")
+    .map(e => timeDiffMinutes(e.BilledTime, e.DeliveryTime))
+    .filter(t => t > 0 && t < 480);
+
+  const avgProc = procTimes.length ? Math.round(procTimes.reduce((a,b)=>a+b,0)/procTimes.length) : null;
+  const avgDel  = delTimes.length  ? Math.round(delTimes.reduce((a,b)=>a+b,0)/delTimes.length)   : null;
+
+  const ordersToday     = data.filter(e=>e.Date===today).length;
+  const ordersThisWeek  = data.filter(e=>getWeekKey(e.Date)===thisWeek).length;
+  const ordersThisMonth = data.filter(e=>e.Date&&e.Date.startsWith(thisMonth)).length;
+  const valueToday      = data.filter(e=>e.Date===today).reduce((s,e)=>s+Number(e.Amount||0),0);
+  const valueThisMonth  = data.filter(e=>e.Date&&e.Date.startsWith(thisMonth)).reduce((s,e)=>s+Number(e.Amount||0),0);
+
+  const metrics = [
+    { label:"Avg Processing Time", value: avgProc!==null?`${avgProc} min`:"—", sub:"Order → Billed",   icon:"⚡", color:"#7C3AED", bg:"#F5F3FF" },
+    { label:"Avg Delivery Time",   value: avgDel!==null ?`${avgDel} min` :"—", sub:"Billed → Delivered",icon:"🚚", color:"#1D4ED8", bg:"#EFF6FF" },
+    { label:"Orders Today",        value: ordersToday,          sub:"deliveries",    icon:"📦", color:"#059669", bg:"#ECFDF5" },
+    { label:"Orders This Week",    value: ordersThisWeek,       sub:"deliveries",    icon:"📅", color:"#F59E0B", bg:"#FFFBEB" },
+    { label:"Orders This Month",   value: ordersThisMonth,      sub:"deliveries",    icon:"📊", color:"#0284C7", bg:"#F0F9FF" },
+    { label:"Value This Month",    value: fmtCur(valueThisMonth),sub:"revenue",      icon:"💰", color:"#DC2626", bg:"#FEF2F2" },
+  ];
+
+  document.getElementById("timingMetrics").innerHTML = metrics.map(m => `
+    <div class="stat-card" style="background:${m.bg};border:1.5px solid ${m.color}22">
+      <div style="font-size:18px;margin-bottom:4px">${m.icon}</div>
+      <div class="stat-label" style="color:${m.color}">${m.label}</div>
+      <div class="stat-value">${m.value}</div>
+      <div style="font-size:10px;color:${m.color};opacity:.7;margin-top:2px">${m.sub}</div>
+    </div>
+  `).join("");
+}
+
+function renderValueChart(elId, data) {
+  const grouped = {};
+  data.forEach(e=>{
+    const key = getGroupKey(e.Date);
+    if (!key) return;
+    grouped[key] = grouped[key] || {total:0,pending:0,received:0,count:0};
+    grouped[key].total    += Number(e.Amount||0);
+    grouped[key][e.Status==="pending"?"pending":"received"] += Number(e.Amount||0);
+    grouped[key].count++;
+  });
+  const entries = Object.entries(grouped).sort(([a],[b])=>a.localeCompare(b)).slice(-12);
+  const maxVal  = Math.max(...entries.map(([,v])=>v.total), 1);
+  document.getElementById(elId).innerHTML = entries.length ? entries.map(([key,val])=>`
+    <div class="bar-row">
+      <div class="bar-meta">
+        <span class="bar-key">${key}</span>
+        <span class="bar-val">${fmtCur(val.total)} &nbsp;(${val.count} orders)</span>
+      </div>
+      <div class="bar-track">
+        <div style="height:100%;width:${val.total/maxVal*100}%;position:relative;border-radius:6px;background:linear-gradient(90deg,var(--green-600),#4ADE80)">
+          <div style="position:absolute;right:0;top:0;height:100%;width:${val.total?val.pending/val.total*100:0}%;background:#F59E0B;border-radius:0 6px 6px 0"></div>
+        </div>
+      </div>
+      <div class="bar-legend">
+        <span style="color:#10B981">● Received: ${fmtCur(val.received)}</span>
+        <span style="color:#F59E0B">● Pending: ${fmtCur(val.pending)}</span>
+      </div>
+    </div>
+  `).join("") : emptyChart();
+}
+
+function renderCountChart(elId, data) {
+  const grouped = {};
+  data.forEach(e=>{
+    const key = getGroupKey(e.Date);
+    if (!key) return;
+    grouped[key] = (grouped[key]||0) + 1;
+  });
+  const entries = Object.entries(grouped).sort(([a],[b])=>a.localeCompare(b)).slice(-12);
+  const maxVal  = Math.max(...entries.map(([,v])=>v), 1);
+  document.getElementById(elId).innerHTML = entries.length ? entries.map(([key,val])=>`
+    <div class="bar-row">
+      <div class="bar-meta">
+        <span class="bar-key">${key}</span>
+        <span class="bar-val">${val} orders</span>
+      </div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width:${val/maxVal*100}%;background:linear-gradient(90deg,#059669,#10B981)"></div>
+      </div>
+    </div>
+  `).join("") : emptyChart();
+}
+
+function renderTimingChart(elId, data, mode) {
+  const grouped = {};
+  data.forEach(e=>{
+    let diff;
+    if (mode==="processing" && e.OrderTime && e.BilledTime) diff = timeDiffMinutes(e.OrderTime, e.BilledTime);
+    if (mode==="delivery"   && e.BilledTime && e.DeliveryTime && e.Status==="received") diff = timeDiffMinutes(e.BilledTime, e.DeliveryTime);
+    if (diff === undefined || diff <= 0 || diff > 600) return;
+    const key = getGroupKey(e.Date);
+    if (!key) return;
+    grouped[key] = grouped[key] || {total:0, count:0};
+    grouped[key].total += diff;
+    grouped[key].count++;
+  });
+  const entries = Object.entries(grouped).sort(([a],[b])=>a.localeCompare(b)).slice(-12);
+  if (!entries.length) { document.getElementById(elId).innerHTML = emptyChart("No timing data — ensure Order Time, Billed Time, and Delivery Time are filled in"); return; }
+  const avgs   = entries.map(([k,v]) => [k, Math.round(v.total/v.count)]);
+  const maxVal = Math.max(...avgs.map(([,v])=>v), 1);
+  const color  = mode==="processing"
+    ? "linear-gradient(90deg,#7C3AED,#A855F7)"
+    : "linear-gradient(90deg,#1D4ED8,#3B82F6)";
+  document.getElementById(elId).innerHTML = avgs.map(([key,val])=>`
+    <div class="bar-row">
+      <div class="bar-meta">
+        <span class="bar-key">${key}</span>
+        <span class="bar-val">${val} min avg</span>
+      </div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width:${val/maxVal*100}%;background:${color}"></div>
+      </div>
+    </div>
+  `).join("");
+}
+
+function emptyChart(msg="No data available") {
+  return `<div class="empty" style="padding:30px"><div class="empty-icon" style="font-size:32px">📉</div><div class="empty-text" style="font-size:13px">${msg}</div></div>`;
+}
+
+// ── FILTERS ───────────────────────────────────────────────────
+function renderFilters() {
+  renderFilterBar("masterFilters",    "master");
+  renderFilterBar("pendingFilters",   "pending",  true);
+  renderFilterBar("analyticsFilters", "analytics", true);
+}
+
+function renderFilterBar(elId, key, noPendingFilter) {
+  const f   = filters[key] || {};
+  const el  = document.getElementById(elId);
+  if (!el) return;
+  const hasClear = Object.values(f).some(v=>v);
+  el.innerHTML = `
+    <input class="filter-input" placeholder="🔍 Search…" value="${f.search||""}" oninput="setFilter('${key}','search',this.value)" style="min-width:160px"/>
+    ${!noPendingFilter?`<select class="filter-input" onchange="setFilter('${key}','status',this.value)">
+      <option value="">All Status</option>
+      <option value="pending" ${f.status==="pending"?"selected":""}>Pending</option>
+      <option value="received" ${f.status==="received"?"selected":""}>Received</option>
+    </select>`:""}
+    <select class="filter-input" onchange="setFilter('${key}','paymentMode',this.value)">
+      <option value="">All Modes</option>
+      ${DELIVERY_MODES.map(m=>`<option value="${m}" ${f.paymentMode===m?"selected":""}>${m}</option>`).join("")}
+    </select>
+    <input class="filter-input" type="date" value="${f.dateFrom||""}" oninput="setFilter('${key}','dateFrom',this.value)" title="From" />
+    <input class="filter-input" type="date" value="${f.dateTo||""}"   oninput="setFilter('${key}','dateTo',this.value)"   title="To"   />
+    ${hasClear?`<button class="btn-clear" onclick="clearFilter('${key}')">✕ Clear</button>`:""}
+  `;
+}
+
+function setFilter(key, field, val) {
+  filters[key] = filters[key] || {};
+  filters[key][field] = val;
+  renderAll();
+}
+function clearFilter(key) { filters[key] = {}; renderAll(); }
+
+function applyFilter(data, f) {
+  if (!f) return data;
+  return data.filter(e => {
+    const s = (f.search||"").toLowerCase();
+    if (s && !`${e.CustomerName} ${e.BillNumber} ${e.TakenBy} ${e.DeliveryPerson}`.toLowerCase().includes(s)) return false;
+    if (f.status      && e.Status !== f.status) return false;
+    if (f.paymentMode && e.ExpectedPaymentMode !== f.paymentMode && e.PaymentMode !== f.paymentMode) return false;
+    if (f.dateFrom    && e.Date < f.dateFrom)   return false;
+    if (f.dateTo      && e.Date > f.dateTo)     return false;
+    return true;
+  });
+}
+
+// ── MODALS ────────────────────────────────────────────────────
+function openAddModal() {
+  editingId = null;
+  billPhotoFile = null;
+  document.getElementById("modalTitle").textContent  = "Add New Order";
+  document.getElementById("saveBtn").textContent     = "Save Order";
+  renderForm({}, false);
+  document.getElementById("entryModal").style.display = "flex";
+}
+
+function openEditModal(id) {
+  editingId = id;
+  const e   = allEntries.find(x => x.ID === id) || {};
+  document.getElementById("modalTitle").textContent  = "Edit Order";
+  document.getElementById("saveBtn").textContent     = "Save Changes";
+  renderForm(e, true);
+  document.getElementById("entryModal").style.display = "flex";
+}
+
+function openReceiveModal(id) {
+  markId = id;
+  document.getElementById("receivedByInput").value = "";
+  document.getElementById("receivedModal").style.display = "flex";
+}
+
+function closeModal(id) { document.getElementById(id).style.display = "none"; }
+function closeModalOnBg(e, id) { if (e.target === document.getElementById(id)) closeModal(id); }
+
+function renderForm(data, isEdit) {
+  document.getElementById("entryForm").innerHTML = FORM_FIELDS
+    .filter(f => {
+      if (f.type === "section") return (!f.editOnly || isEdit) && (!f.addOnly || !isEdit);
+      return (!f.editOnly || isEdit) && (!f.addOnly || !isEdit);
+    })
+    .map(f => {
+      // Section dividers
+      if (f.type === "section") {
+        return `<div class="form-section-title">${f.label}</div>`;
+      }
+      const cls = f.half ? "form-group" : "form-group full";
+      let inp = "";
+      if (f.type === "select") {
+        inp = `<select class="form-control" id="ff_${f.key}">
+          ${(f.options||[]).map(o=>`<option value="${o}" ${(data[f.key]||"")=== o?"selected":""}>${o}</option>`).join("")}
+        </select>`;
+      } else if (f.type === "textarea") {
+        inp = `<textarea class="form-control" id="ff_${f.key}" rows="2">${data[f.key]||""}</textarea>`;
+      } else if (f.type === "file") {
+        inp = `
+          <input class="form-control" type="file" id="ff_${f.key}" accept="image/*" capture="environment"
+            onchange="onBillPhotoSelected(this)" style="padding:6px"/>
+          <div id="billPreview"></div>`;
+      } else {
+        inp = `<input class="form-control" type="${f.type}" id="ff_${f.key}" value="${data[f.key]||""}" />`;
+      }
+      return `<div class="${cls}"><label class="form-label">${f.label}</label>${inp}</div>`;
+    }).join("");
+
+  // Defaults
+  if (!data.Date) {
+    const el = document.getElementById("ff_Date");
+    if (el) el.value = new Date().toISOString().split("T")[0];
+  }
+  // Default OrderTime to now
+  if (!data.OrderTime && !isEdit) {
+    const el = document.getElementById("ff_OrderTime");
+    if (el) el.value = new Date().toTimeString().slice(0,5);
+  }
+}
+
+function onBillPhotoSelected(input) {
+  billPhotoFile = input.files?.[0] || null;
+  const preview = document.getElementById("billPreview");
+  if (!preview) return;
+  if (billPhotoFile) {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      preview.innerHTML = `<img src="${ev.target.result}" class="bill-preview-img" alt="Bill preview" />
+        <div class="photo-badge" style="margin-top:6px">✅ Bill photo selected: ${billPhotoFile.name}</div>`;
+    };
+    reader.readAsDataURL(billPhotoFile);
+  } else {
+    preview.innerHTML = "";
+  }
+}
+
+function collectForm() {
+  const out = {};
+  FORM_FIELDS.filter(f => f.type !== "section" && f.type !== "file").forEach(f => {
+    const el = document.getElementById("ff_" + f.key);
+    if (el) out[f.key] = el.value;
+  });
+  return out;
+}
+
+// ── TAB ───────────────────────────────────────────────────────
+function switchTab(tab) {
+  activeTab = tab;
+  ["master","pending","summary","analytics"].forEach(t => {
+    document.getElementById("tab-"+t).style.display = t===tab ? "" : "none";
+    document.querySelector(`[data-tab="${t}"]`).classList.toggle("active", t===tab);
+  });
+  if (tab==="analytics") renderAnalytics();
+}
+
+function setGroup(g) {
+  groupBy = g;
+  document.querySelectorAll(".gtbtn").forEach(b => b.classList.toggle("active", b.dataset.group===g));
+  renderAnalytics();
+}
+
+// ── HELPERS ───────────────────────────────────────────────────
+function fmtCur(n) { return "₹" + Number(n||0).toLocaleString("en-IN"); }
+function fmtDate(d) {
+  if (!d) return "—";
+  try { return new Date(d).toLocaleDateString("en-IN",{day:"2-digit",month:"short",year:"numeric"}); }
+  catch { return d; }
+}
+function timeDiffMinutes(t1, t2) {
+  try {
+    const [h1,m1] = t1.split(":").map(Number);
+    const [h2,m2] = t2.split(":").map(Number);
+    return (h2*60+m2) - (h1*60+m1);
+  } catch { return -1; }
+}
+function getWeek(dateStr) {
+  try {
+    const d=new Date(dateStr), f=new Date(d.getFullYear(),0,1);
+    return Math.ceil(((d-f)/86400000+f.getDay()+1)/7);
+  } catch { return 0; }
+}
+function getWeekKey(dateStr) {
+  if (!dateStr) return "";
+  try { return `W${String(getWeek(dateStr)).padStart(2,"0")}-${dateStr.slice(0,4)}`; }
+  catch { return ""; }
+}
+function getGroupKey(dateStr) {
+  if (!dateStr) return "";
+  const k = groupBy==="day"? dateStr : groupBy==="week"? getWeekKey(dateStr) : dateStr.slice(0,7);
+  return (k && !k.includes("undefined") && !k.includes("NaN")) ? k : "";
+}
+
+let toastTimer;
+function showToast(msg, type="success") {
+  clearTimeout(toastTimer);
+  const old = document.querySelector(".toast");
+  if (old) old.remove();
+  const el = document.createElement("div");
+  el.className = `toast toast-${type}`;
+  el.textContent = msg;
+  document.body.appendChild(el);
+  toastTimer = setTimeout(()=>el.remove(), 3500);
+}
+
+// ── SAMPLE DATA ───────────────────────────────────────────────
+function getSampleData() {
+  return [
+    { ID:"s1", Date:"2026-02-20", CustomerName:"Ramesh Kumar",  Phone:"9876543210", BillNumber:"INV-001", TakenBy:"Suresh",  OrderTime:"10:20", BilledTime:"10:35", DeliveryTime:"11:10", DeliveryPerson:"Ravi",  PaymentMode:"Cash",    ExpectedPaymentMode:"Cash",    Amount:1250, ReceivedBy:"",       Status:"pending",  Notes:"Regular customer" },
+    { ID:"s2", Date:"2026-02-20", CustomerName:"Priya Lakshmi", Phone:"9123456789", BillNumber:"INV-002", TakenBy:"Anand",   OrderTime:"11:00", BilledTime:"11:12", DeliveryTime:"11:50", DeliveryPerson:"Kumar", PaymentMode:"Paytm",   ExpectedPaymentMode:"Paytm",   Amount:850,  ReceivedBy:"",       Status:"pending",  Notes:"" },
+    { ID:"s3", Date:"2026-02-19", CustomerName:"Vijay Anand",   Phone:"9988776655", BillNumber:"INV-003", TakenBy:"Suresh",  OrderTime:"14:00", BilledTime:"14:18", DeliveryTime:"14:55", DeliveryPerson:"Ravi",  PaymentMode:"Phonepe", ExpectedPaymentMode:"Phonepe", Amount:2100, ReceivedBy:"Suresh", Status:"received", Notes:"" },
+    { ID:"s4", Date:"2026-02-19", CustomerName:"Ramesh Kumar",  Phone:"9876543210", BillNumber:"INV-004", TakenBy:"Anand",   OrderTime:"15:30", BilledTime:"15:42", DeliveryTime:"",      DeliveryPerson:"Kumar", PaymentMode:"Cash",    ExpectedPaymentMode:"Cash",    Amount:670,  ReceivedBy:"",       Status:"pending",  Notes:"2nd order same customer" },
+    { ID:"s5", Date:"2026-02-18", CustomerName:"Meena Devi",    Phone:"9000000001", BillNumber:"INV-005", TakenBy:"Suresh",  OrderTime:"09:45", BilledTime:"10:00", DeliveryTime:"10:40", DeliveryPerson:"Ravi",  PaymentMode:"Sodexo",  ExpectedPaymentMode:"Sodexo",  Amount:3200, ReceivedBy:"Suresh", Status:"received", Notes:"Bulk order" },
+    { ID:"s6", Date:"2026-02-18", CustomerName:"Arjun Pillai",  Phone:"9111222333", BillNumber:"INV-006", TakenBy:"Anand",   OrderTime:"13:15", BilledTime:"13:28", DeliveryTime:"14:05", DeliveryPerson:"Kumar", PaymentMode:"Card",    ExpectedPaymentMode:"Razorpay",Amount:1890, ReceivedBy:"Anand",  Status:"received", Notes:"" },
+  ];
+}
+
+// ── INIT ──────────────────────────────────────────────────────
+window.onload = () => {
+  allEntries = getSampleData();
+  renderAll();
+  if (APPS_SCRIPT_URL !== "https://script.google.com/macros/s/AKfycbwkupivAAta3mVzzAP2pg_rnXBGCAQT1DLw19tWqfMt_O35mPCE8Uw784WFZW43EtcHNg/exec") loadData();
+};
+</script>
+</body>
+</html>
