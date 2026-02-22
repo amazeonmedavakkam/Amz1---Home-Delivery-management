@@ -312,6 +312,16 @@
 
   <!-- ── SUMMARY TAB ── -->
   <div id="tab-summary" style="display:none">
+    <!-- Summary filter bar + period toggle -->
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+      <div class="filter-bar" id="summaryFilters"></div>
+      <div class="group-toggle">
+        <button class="gtbtn active" data-sg="all"   onclick="setSummaryGroup('all')">All Time</button>
+        <button class="gtbtn"        data-sg="today" onclick="setSummaryGroup('today')">Today</button>
+        <button class="gtbtn"        data-sg="week"  onclick="setSummaryGroup('week')">This Week</button>
+        <button class="gtbtn"        data-sg="month" onclick="setSummaryGroup('month')">This Month</button>
+      </div>
+    </div>
     <div class="summary-grid">
       <div class="card" style="padding:24px">
         <div class="card-title" style="margin-bottom:18px">💰 Order Overview</div>
@@ -368,10 +378,17 @@
       </div>
     </div>
 
-    <!-- Staff Performance -->
+    <!-- Staff Performance — two sub-tabs -->
     <div class="card" style="padding:24px;margin-top:18px">
-      <div class="card-title" style="margin-bottom:18px">👥 Staff Performance</div>
-      <div id="staffStats" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+        <div class="card-title">👥 Staff Performance</div>
+        <div class="group-toggle">
+          <button class="gtbtn active" id="staff-tab-shop"     onclick="switchStaffTab('shop')">🏪 In-Shop</button>
+          <button class="gtbtn"        id="staff-tab-delivery" onclick="switchStaffTab('delivery')">🚚 Delivery</button>
+        </div>
+      </div>
+      <div id="staffStatsInShop"></div>
+      <div id="staffStatsDelivery" style="display:none"></div>
     </div>
   </div>
 
@@ -426,6 +443,28 @@
   </div>
 </div>
 
+<!-- 🔐 Delete Password Modal -->
+<div class="modal-overlay" id="deleteModal" style="display:none" onclick="closeModalOnBg(event,'deleteModal')">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-head">
+      <div class="modal-title">🗑 Confirm Delete</div>
+      <button class="modal-close" onclick="closeModal('deleteModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <p class="confirm-text">You are about to permanently delete:</p>
+      <div id="deleteEntryInfo" style="background:var(--red-bg);border:1.5px solid #FCA5A5;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:13px;font-weight:700;color:var(--red)"></div>
+      <label class="form-label">Enter delete password to confirm</label>
+      <input class="form-control" id="deletePasswordInput" type="password" placeholder="Enter password…" style="width:100%"
+        onkeydown="if(event.key==='Enter')confirmDelete()" />
+      <div id="deleteError" style="display:none;color:var(--red);font-size:12px;font-weight:700;margin-top:8px">❌ Wrong password. Entry not deleted.</div>
+      <div class="modal-footer">
+        <button class="btn-cancel" onclick="closeModal('deleteModal')">Cancel</button>
+        <button class="btn-save" onclick="confirmDelete()" id="deleteConfirmBtn" style="background:var(--red)">🗑 Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ✅ Post-Save Actions Modal -->
 <div class="modal-overlay" id="postSaveModal" style="display:none" onclick="closeModalOnBg(event,'postSaveModal')">
   <div class="modal" style="max-width:460px">
@@ -475,9 +514,12 @@
 // ╚══════════════════════════════════════════════════════════╝
 const APPS_SCRIPT_URL      = "https://script.google.com/macros/s/AKfycbwkupivAAta3mVzzAP2pg_rnXBGCAQT1DLw19tWqfMt_O35mPCE8Uw784WFZW43EtcHNg/exec";
 const SHOP_NAME            = "Amaze On";
-// Multiple delivery team members — each gets a separate WhatsApp message
-const DELIVERY_TEAM        = ["919717762233", "919751745184", "917395865732"];
+// WhatsApp Group invite link for delivery team
+// Set to your WhatsApp group invite link from: Open Group > ... > Invite via link
+const DELIVERY_GROUP_LINK  = "YOUR_WHATSAPP_GROUP_INVITE_LINK";
+// e.g. "https://chat.whatsapp.com/XXXXXXXXXXXXXXXXXXXXXX"
 const COUNTRY_CODE         = "91"; // India
+const DELETE_PASSWORD      = "amaze2024"; // Password required to delete any entry
 // ────────────────────────────────────────────────────────────
 
 const DELIVERY_MODES = ["Paytm", "Cash", "Phonepe", "Razorpay", "Card", "Sodexo"];
@@ -517,6 +559,7 @@ let editingId     = null;
 let markId        = null;
 let lastSavedEntry = null;
 let billPhotoFile = null;
+let pendingDeleteId = null;
 let activeTab     = "master";
 let groupBy       = "day";
 let filters       = { master:{}, pending:{}, analytics:{} };
@@ -626,14 +669,34 @@ async function saveEntry() {
   btn.disabled = false;
 }
 
-async function deleteEntry(id) {
-  if (!confirm("Delete this order entry?")) return;
-  const res = await api("POST", { action:"delete", id });
+function deleteEntry(id) {
+  pendingDeleteId = id;
+  document.getElementById("deletePasswordInput").value = "";
+  document.getElementById("deleteError").style.display = "none";
+  const e = allEntries.find(x => x.ID === id) || {};
+  document.getElementById("deleteEntryInfo").textContent = `Bill: ${e.BillNumber||"—"} — ${e.CustomerName||"—"} — ${fmtCur(e.Amount)}`;
+  document.getElementById("deleteModal").style.display = "flex";
+  setTimeout(() => document.getElementById("deletePasswordInput").focus(), 100);
+}
+
+async function confirmDelete() {
+  const pwd = document.getElementById("deletePasswordInput").value;
+  if (pwd !== DELETE_PASSWORD) {
+    document.getElementById("deleteError").style.display = "block";
+    return;
+  }
+  const btn = document.getElementById("deleteConfirmBtn");
+  btn.innerHTML = '<span class="spinner"></span>';
+  btn.disabled = true;
+  const res = await api("POST", { action:"delete", id: pendingDeleteId });
   if (res?.success) {
-    allEntries = allEntries.filter(e => e.ID !== id);
-    showToast("Deleted", "error");
+    allEntries = allEntries.filter(e => e.ID !== pendingDeleteId);
+    showToast("Entry deleted", "error");
+    closeModal("deleteModal");
     renderAll();
   }
+  btn.innerHTML = "🗑 Delete";
+  btn.disabled = false;
 }
 
 async function confirmReceived() {
@@ -646,10 +709,15 @@ async function confirmReceived() {
   const res  = await api("POST", { action:"update", data });
   if (res?.success) {
     const idx = allEntries.findIndex(e => e.ID === markId);
-    if (idx !== -1) { allEntries[idx].Status = "received"; allEntries[idx].ReceivedBy = name; allEntries[idx].PaymentMode = mode; }
-    showToast("Marked as received ✓");
+    if (idx !== -1) {
+      allEntries[idx].Status      = "received";
+      allEntries[idx].ReceivedBy  = name;
+      // Only overwrite if a mode was actually selected
+      if (mode) allEntries[idx].PaymentMode = mode;
+    }
+    showToast(`Payment received ✓${mode ? " via " + mode : ""}`);
     closeModal("receivedModal");
-    renderAll();
+    renderTablesOnly();
   }
   btn.innerHTML = "Confirm Received ✓";
   btn.disabled = false;
@@ -770,10 +838,20 @@ function buildFollowUpMessage(customerName) {
 
 function sendFollowUp(id) {
   const e = allEntries.find(x => x.ID === id);
-  if (!e) return;
+  if (!e) { showToast("Order not found", "error"); return; }
+  if (!e.Phone) { showToast("No phone number for this customer", "error"); return; }
   const msg = buildFollowUpMessage(e.CustomerName);
   if (!msg) return;
-  openWhatsApp(e.Phone, msg, null, "Follow-up");
+  openWhatsApp(e.Phone, msg, null, "Payment Follow-up");
+}
+
+function sendFollowUpSMS(id) {
+  const e = allEntries.find(x => x.ID === id);
+  if (!e) { showToast("Order not found", "error"); return; }
+  if (!e.Phone) { showToast("No phone number for this customer", "error"); return; }
+  const msg = buildFollowUpMessage(e.CustomerName);
+  if (!msg) return;
+  openSMS(e.Phone, msg);
 }
 
 function buildGroupAlertMessage(entry) {
@@ -821,7 +899,8 @@ function openWhatsApp(phone, msg, photoFile, shareTitle) {
     showToast("⚠️ Phone number missing or invalid — cannot open WhatsApp", "error");
     return;
   }
-  const waUrl = `https://wa.me/${normalised}?text=${encodeURIComponent(msg)}`;
+  // Use api.whatsapp.com/send which opens direct chat without contact picker on more devices
+  const waUrl = `https://api.whatsapp.com/send?phone=${normalised}&text=${encodeURIComponent(msg)}`;
 
   // If photo attached AND on mobile with Web Share API → share natively (opens WhatsApp share sheet)
   if (photoFile && typeof navigator.share === "function" && typeof navigator.canShare === "function") {
@@ -882,30 +961,24 @@ function sendGroupAlert(id) {
   const e = allEntries.find(x => x.ID === id);
   if (!e) return;
   const msg = buildGroupAlertMessage(e);
-  const team = typeof DELIVERY_TEAM !== "undefined" ? DELIVERY_TEAM : [];
 
-  if (team.length === 0) {
-    // No numbers configured — copy to clipboard
+  // Try to open WhatsApp group link — user opens the group then pastes/shares the pre-copied msg
+  const link = typeof DELIVERY_GROUP_LINK !== "undefined" ? DELIVERY_GROUP_LINK : "";
+  const isValidLink = link && !link.includes("YOUR_WHATSAPP");
+
+  // Copy message to clipboard first (works in any case)
+  const copyAndOpen = () => {
     navigator.clipboard && navigator.clipboard.writeText(msg)
-      .then(() => showToast("📋 Alert copied — paste into your delivery WhatsApp group", "info"))
-      .catch(() => prompt("Copy this alert:", msg));
-    return;
-  }
-
-  // Open WhatsApp for each delivery team member in sequence
-  // First member opens immediately, subsequent ones open with 800ms delay
-  // (browsers may block rapid popups — user may need to allow pop-ups)
-  const encoded = encodeURIComponent(msg);
-  team.forEach((num, i) => {
-    const raw = num.replace(/\D/g,"");
-    setTimeout(() => {
-      window.open(`https://wa.me/${raw}?text=${encoded}`, `_wa_team_${i}`);
-    }, i * 900);
-  });
-
-  if (team.length > 1) {
-    showToast(`🚚 Opening WhatsApp for ${team.length} delivery team members…`, "info");
-  }
+      .then(() => {
+        showToast("📋 Alert copied to clipboard — paste in delivery group!", "info");
+        if (isValidLink) setTimeout(() => window.open(link, "_blank"), 600);
+      })
+      .catch(() => {
+        if (isValidLink) window.open(link, "_blank");
+        else prompt("Copy this alert to your delivery group:", msg);
+      });
+  };
+  copyAndOpen();
 }
 
 function sendWhatsApp(id) {
@@ -920,40 +993,19 @@ function sendSMS(id) {
   openSMS(e.Phone, buildCustomerMessage(e));
 }
 
-function sendFollowUpSMS(id) {
-  const e = allEntries.find(x => x.ID === id);
-  if (!e) return;
-  const msg = buildFollowUpMessage(e.CustomerName);
-  if (!msg) return;
-  openSMS(e.Phone, msg);
-}
+
 
 // ── RENDER ALL ────────────────────────────────────────────────
 function renderAll() {
-  const pending      = allEntries.filter(e => e.Status === "pending");
-  const totalPending = pending.reduce((s,e) => s + Number(e.Amount||0), 0);
-
-  document.getElementById("headerActive").textContent  = pending.length;
-  document.getElementById("headerPending").textContent = fmtCur(totalPending);
-  const badge = document.getElementById("pendingBadge");
-  if (pending.length) { badge.textContent = pending.length; badge.style.display = "inline"; }
-  else badge.style.display = "none";
-
-  renderTable("masterTable",  "masterCount",  applyFilter(allEntries, filters.master),  false);
-  renderTable("pendingTable", "pendingCount", applyFilter(pending,    filters.pending), true);
-  renderPendingStats(pending);
-  renderSummary(allEntries, pending, totalPending);
-  if (activeTab === "analytics") renderAnalytics();
-  renderFilters();
-
   document.getElementById("setupBanner").style.display = "none";
+  renderTablesOnly();
 }
 
 // ── TABLE ─────────────────────────────────────────────────────
 function renderTable(tableId, countId, data, pendingOnly) {
   const table  = document.getElementById(tableId);
-  const cols   = ["Type","Date","BillNumber","CustomerName","Phone","Amount","ExpectedPaymentMode","PaymentMode","TakenBy","OrderTime","BilledTime","DeliveryTime","DeliveryPerson","Status","Actions"];
-  const labels = ["Type","Date","Bill No","Customer","Phone","Amount","Exp. Mode","Actual Mode","Taken By","Order Time","Billed Time","Del. Time","Del. Person","Status","Actions"];
+  const cols   = ["Type","Date","BillNumber","CustomerName","Phone","Amount","ExpectedPaymentMode","PaymentMode","TakenBy","OrderTime","BilledTime","DeliveryTime","DeliveryPerson","ProcessTime","DelivTime","Status","Actions"];
+  const labels = ["Type","Date","Bill No","Customer","Phone","Amount","Exp. Mode","Actual Mode","Taken By","Order Time","Billed Time","Del. Time","Del. Person","⚡ Process","🚚 Deliver","Status","Actions"];
   table.querySelector("thead").innerHTML = `<tr>${labels.map(h=>`<th>${h}</th>`).join("")}</tr>`;
   if (!data.length) {
     table.querySelector("tbody").innerHTML = `<tr><td colspan="${cols.length}" class="empty"><div class="empty-icon">📭</div><div class="empty-text">No orders found</div></td></tr>`;
@@ -981,16 +1033,20 @@ function renderTable(tableId, countId, data, pendingOnly) {
       <td>${fmtTime(e.BilledTime)}</td>
       <td>${isDelivery?fmtTime(e.DeliveryTime):"—"}</td>
       <td>${isDelivery?(e.DeliveryPerson||"—"):"—"}</td>
+      <td>${(()=>{ const t1=parseTimeToHHMM(e.OrderTime),t2=parseTimeToHHMM(e.BilledTime); const d=t1&&t2?timeDiffMinutes(t1,t2):-1; return d>0?`<span style="font-size:11px;color:#7C3AED;font-weight:700">${d}m</span>`:"—"; })()}</td>
+      <td>${(()=>{ if(!isDelivery) return "—"; const t1=parseTimeToHHMM(e.BilledTime),t2=parseTimeToHHMM(e.DeliveryTime); const d=t1&&t2?timeDiffMinutes(t1,t2):-1; return d>0?`<span style="font-size:11px;color:#0D9488;font-weight:700">${d}m</span>`:"—"; })()}</td>
       <td><span class="badge-status ${e.Status==="pending"?"badge-pending":"badge-received"}"><span class="dot ${e.Status==="pending"?"dot-pending":"dot-received"}"></span>${e.Status==="pending"?"Pending":"Received"}</span></td>
       <td class="td-actions">
-        ${e.Status==="pending"?`<button class="act-btn act-btn-receive" onclick="openReceiveModal('${e.ID}')" title="Mark Received">✓ Rcvd</button>`:""}
-        <button class="act-btn act-btn-wa"       onclick="sendWhatsApp('${e.ID}')"   title="Send Bill via WhatsApp">📱 WA</button>
-        <button class="act-btn act-btn-sms"      onclick="sendSMS('${e.ID}')"        title="Send Bill via SMS">💬 SMS</button>
-        ${e.Status==="pending"?`<button class="act-btn act-btn-followup" onclick="sendFollowUp('${e.ID}')" title="Follow-up via WhatsApp">🔔 WA F/U</button>`:""}
-        ${e.Status==="pending"?`<button class="act-btn act-btn-sms" onclick="sendFollowUpSMS('${e.ID}')" title="Follow-up via SMS">💬 SMS F/U</button>`:""}
-        ${isDelivery?`<button class="act-btn act-btn-group" onclick="sendGroupAlert('${e.ID}')" title="Alert Delivery Group">🚚 Alert</button>`:""}
-        <button class="act-btn act-btn-edit"     onclick="openEditModal('${e.ID}')"  title="Edit">✏️</button>
-        <button class="act-btn act-btn-del"      onclick="deleteEntry('${e.ID}')"    title="Delete">🗑</button>
+        ${e.Status==="pending" ? `
+          <button class="act-btn act-btn-receive"  onclick="openReceiveModal('${e.ID}')"  title="Mark Received">✓ Rcvd</button>
+          <button class="act-btn act-btn-wa"       onclick="sendWhatsApp('${e.ID}')"      title="Send Bill via WhatsApp">📱 WA</button>
+          <button class="act-btn act-btn-sms"      onclick="sendSMS('${e.ID}')"           title="Send Bill via SMS">💬 SMS</button>
+          <button class="act-btn act-btn-followup" onclick="sendFollowUp('${e.ID}')"      title="Follow-up via WhatsApp">🔔 WA F/U</button>
+          <button class="act-btn act-btn-sms"      onclick="sendFollowUpSMS('${e.ID}')"   title="Follow-up via SMS">📲 SMS F/U</button>
+          ${isDelivery?`<button class="act-btn act-btn-group" onclick="sendGroupAlert('${e.ID}')" title="Alert Delivery Group">🚚 Alert</button>`:""}
+        ` : `<span style="font-size:11px;color:#10B981;font-weight:700">✅ Received</span>`}
+        <button class="act-btn act-btn-edit" onclick="openEditModal('${e.ID}')"  title="Edit">✏️</button>
+        <button class="act-btn act-btn-del"  onclick="deleteEntry('${e.ID}')"    title="Delete">🗑</button>
       </td>
     </tr>`;
   }).join("");
@@ -1014,41 +1070,79 @@ function renderPendingStats(pending) {
   `).join("");
 }
 
+let summaryGroup = "all";
+function setSummaryGroup(g) {
+  summaryGroup = g;
+  document.querySelectorAll("[data-sg]").forEach(b => b.classList.toggle("active", b.dataset.sg===g));
+  const pending      = allEntries.filter(e => e.Status === "pending");
+  const totalPending = pending.reduce((s,e) => s + Number(e.Amount||0), 0);
+  renderSummary(allEntries, pending, totalPending);
+}
+
+function filterByPeriod(data) {
+  const today   = new Date().toISOString().split("T")[0];
+  const thisWeek  = getWeekKey(today);
+  const thisMonth = today.slice(0,7);
+  if (summaryGroup === "today")
+    return data.filter(e => e.Date === today);
+  if (summaryGroup === "week")
+    return data.filter(e => getWeekKey(e.Date) === thisWeek);
+  if (summaryGroup === "month")
+    return data.filter(e => e.Date && e.Date.startsWith(thisMonth));
+  return data; // "all"
+}
+
 function renderSummary(all, pending, totalPending) {
-  const totalReceived = all.filter(e=>e.Status==="received").reduce((s,e)=>s+Number(e.Amount||0),0);
+  const filtAll     = filterByPeriod(all);
+  const filtPending = filtAll.filter(e => e.Status === "pending");
+  const filtRecvd   = filtAll.filter(e => e.Status === "received");
+  const filtPendAmt = filtPending.reduce((s,e)=>s+Number(e.Amount||0),0);
+  const totalReceived = filtRecvd.reduce((s,e)=>s+Number(e.Amount||0),0);
+
   document.getElementById("summaryOverview").innerHTML = [
-    ["Total Orders",         all.length,                 "#1D4ED8"],
-    ["Pending Orders",       pending.length,             "#F59E0B"],
-    ["Delivered & Received", all.length-pending.length,  "#10B981"],
-    ["Total Pending Amount", fmtCur(totalPending),       "#DC2626"],
-    ["Total Received",       fmtCur(totalReceived),      "#10B981"],
-    ["Total Business Value", fmtCur(totalPending+totalReceived), "#7C3AED"],
+    ["Total Orders",         filtAll.length,                  "#1D4ED8"],
+    ["Pending Orders",       filtPending.length,              "#F59E0B"],
+    ["Delivered & Received", filtRecvd.length,                "#10B981"],
+    ["Total Pending Amount", fmtCur(filtPendAmt),             "#DC2626"],
+    ["Total Received",       fmtCur(totalReceived),           "#10B981"],
+    ["Total Business Value", fmtCur(filtPendAmt+totalReceived), "#7C3AED"],
   ].map(([k,v,c])=>`<div class="summary-row"><span class="summary-key">${k}</span><span style="font-weight:800;color:${c}">${v}</span></div>`).join("");
 
   const modeMap = {};
-  pending.forEach(e=>{const m=e.ExpectedPaymentMode||e.PaymentMode||"Other";modeMap[m]=(modeMap[m]||0)+Number(e.Amount||0);});
+  filtPending.forEach(e=>{const m=e.ExpectedPaymentMode||e.PaymentMode||"Other";modeMap[m]=(modeMap[m]||0)+Number(e.Amount||0);});
   document.getElementById("summaryByMode").innerHTML = Object.entries(modeMap).sort(([,a],[,b])=>b-a).map(([mode,amt])=>`
     <div style="margin-bottom:12px">
       <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
         <span style="font-weight:600">${mode}</span><span style="color:#64748B">${fmtCur(amt)}</span>
       </div>
       <div style="height:8px;border-radius:4px;background:#F1F5F9">
-        <div style="height:100%;width:${totalPending?(amt/totalPending*100):0}%;background:linear-gradient(90deg,#F59E0B,#FBBF24);border-radius:4px"></div>
+        <div style="height:100%;width:${filtPendAmt?(amt/filtPendAmt*100):0}%;background:linear-gradient(90deg,#F59E0B,#FBBF24);border-radius:4px"></div>
       </div>
     </div>
-  `).join("") || "<p style='color:#94A3B8;font-size:13px'>No pending entries</p>";
+  `).join("") || "<p style='color:#94A3B8;font-size:13px'>No pending entries for this period</p>";
 
   const custMap = {};
-  pending.forEach(e=>{custMap[e.CustomerName]=(custMap[e.CustomerName]||0)+Number(e.Amount||0);});
+  filtPending.forEach(e=>{custMap[e.CustomerName]=(custMap[e.CustomerName]||0)+Number(e.Amount||0);});
   document.getElementById("summaryTopCustomers").innerHTML = Object.entries(custMap).sort(([,a],[,b])=>b-a).slice(0,5).map(([name,amt])=>`
     <div class="summary-row"><span class="summary-key">${name}</span><span style="font-weight:800;color:#DC2626">${fmtCur(amt)}</span></div>
-  `).join("") || "<p style='color:#94A3B8;font-size:13px'>No pending entries</p>";
+  `).join("") || "<p style='color:#94A3B8;font-size:13px'>No pending entries for this period</p>";
 }
 
 // ── ANALYTICS ─────────────────────────────────────────────────
+let activeStaffTab = "shop";
+
+function switchStaffTab(tab) {
+  activeStaffTab = tab;
+  document.getElementById("staff-tab-shop").classList.toggle("active", tab==="shop");
+  document.getElementById("staff-tab-delivery").classList.toggle("active", tab==="delivery");
+  document.getElementById("staffStatsInShop").style.display     = tab==="shop" ? "" : "none";
+  document.getElementById("staffStatsDelivery").style.display   = tab==="delivery" ? "" : "none";
+}
+
 function renderAnalytics() {
-  const fdata   = applyFilter(allEntries, filters.analytics);
-  const label   = groupBy==="day"?"Daily":groupBy==="week"?"Weekly":"Monthly";
+  // Analytics uses ALL orders (not just pending)
+  const fdata = allEntries; // Issue #2: use all
+  const label = groupBy==="day"?"Daily":groupBy==="week"?"Weekly":"Monthly";
 
   renderTimingMetrics(fdata);
   renderValueChart("allChart", fdata);
@@ -1059,23 +1153,65 @@ function renderAnalytics() {
   document.getElementById("allChartTitle").textContent   = `Order Value — ${label}`;
   document.getElementById("countChartTitle").textContent = `Orders Count — ${label}`;
 
-  // Staff performance
-  const staffMap = {};
-  allEntries.forEach(e=>{
+  renderStaffPerformance(fdata);
+}
+
+function renderStaffPerformance(data) {
+  // ── IN-SHOP PERFORMANCE (TakenBy) ──
+  const shopMap = {};
+  data.forEach(e => {
     if (!e.TakenBy) return;
-    staffMap[e.TakenBy] = staffMap[e.TakenBy] || {total:0, pending:0, totalAmt:0};
-    staffMap[e.TakenBy].total++;
-    staffMap[e.TakenBy].totalAmt += Number(e.Amount||0);
-    if (e.Status==="pending") staffMap[e.TakenBy].pending++;
+    shopMap[e.TakenBy] = shopMap[e.TakenBy] || {total:0, pending:0, received:0, totalAmt:0, procTimes:[]};
+    shopMap[e.TakenBy].total++;
+    shopMap[e.TakenBy].totalAmt += Number(e.Amount||0);
+    if (e.Status==="pending")   shopMap[e.TakenBy].pending++;
+    else                        shopMap[e.TakenBy].received++;
+    const t1=parseTimeToHHMM(e.OrderTime), t2=parseTimeToHHMM(e.BilledTime);
+    if (t1&&t2) { const d=timeDiffMinutes(t1,t2); if(d>0&&d<240) shopMap[e.TakenBy].procTimes.push(d); }
   });
-  document.getElementById("staffStats").innerHTML = Object.entries(staffMap).map(([name,s])=>`
-    <div style="background:#F8FAFC;border-radius:12px;padding:16px;border:1.5px solid #E2E8F0">
-      <div style="font-weight:700;font-size:14px;margin-bottom:10px">👤 ${name}</div>
-      <div style="font-size:12px;color:#475569;margin-bottom:4px">Total Orders: <strong>${s.total}</strong></div>
-      <div style="font-size:12px;color:#F59E0B;margin-bottom:4px">Pending: <strong>${s.pending}</strong></div>
-      <div style="font-size:12px;color:#10B981">Value: <strong>${fmtCur(s.totalAmt)}</strong></div>
-    </div>
-  `).join("") || "<p style='color:#94A3B8;font-size:13px'>No data</p>";
+
+  document.getElementById("staffStatsInShop").innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px">
+    ${Object.entries(shopMap).sort(([,a],[,b])=>b.total-a.total).map(([name,s]) => {
+      const avgProc = s.procTimes.length ? Math.round(s.procTimes.reduce((a,b)=>a+b,0)/s.procTimes.length) : null;
+      return `<div style="background:#F8FAFC;border-radius:12px;padding:16px;border:1.5px solid #E2E8F0">
+        <div style="font-weight:800;font-size:14px;margin-bottom:10px">🏪 ${name}</div>
+        <div style="font-size:12px;color:#475569;margin-bottom:4px">Total Orders: <strong>${s.total}</strong></div>
+        <div style="font-size:12px;color:#10B981;margin-bottom:4px">Received: <strong>${s.received}</strong></div>
+        <div style="font-size:12px;color:#F59E0B;margin-bottom:4px">Pending: <strong>${s.pending}</strong></div>
+        <div style="font-size:12px;color:#1D4ED8;margin-bottom:4px">Value: <strong>${fmtCur(s.totalAmt)}</strong></div>
+        <div style="font-size:12px;color:#7C3AED">⚡ Avg Process: <strong>${avgProc!==null?avgProc+"m":"—"}</strong></div>
+      </div>`;
+    }).join("") || "<p style='color:#94A3B8;font-size:13px'>No data</p>"}
+    </div>`;
+
+  // ── DELIVERY PERFORMANCE (DeliveryPerson) ──
+  const delivMap = {};
+  data.forEach(e => {
+    if (!e.DeliveryPerson) return;
+    delivMap[e.DeliveryPerson] = delivMap[e.DeliveryPerson] || {total:0, received:0, totalAmt:0, delivTimes:[]};
+    delivMap[e.DeliveryPerson].total++;
+    delivMap[e.DeliveryPerson].totalAmt += Number(e.Amount||0);
+    if (e.Status==="received") delivMap[e.DeliveryPerson].received++;
+    const t1=parseTimeToHHMM(e.BilledTime), t2=parseTimeToHHMM(e.DeliveryTime);
+    if (t1&&t2) { const d=timeDiffMinutes(t1,t2); if(d>0&&d<600) delivMap[e.DeliveryPerson].delivTimes.push(d); }
+  });
+
+  document.getElementById("staffStatsDelivery").innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px">
+    ${Object.entries(delivMap).sort(([,a],[,b])=>b.total-a.total).map(([name,s]) => {
+      const avgDel = s.delivTimes.length ? Math.round(s.delivTimes.reduce((a,b)=>a+b,0)/s.delivTimes.length) : null;
+      const rate   = s.total ? Math.round(s.received/s.total*100) : 0;
+      return `<div style="background:#F8FAFC;border-radius:12px;padding:16px;border:1.5px solid #E2E8F0">
+        <div style="font-weight:800;font-size:14px;margin-bottom:10px">🚚 ${name}</div>
+        <div style="font-size:12px;color:#475569;margin-bottom:4px">Deliveries: <strong>${s.total}</strong></div>
+        <div style="font-size:12px;color:#10B981;margin-bottom:4px">Completed: <strong>${s.received}</strong></div>
+        <div style="font-size:12px;color:#1D4ED8;margin-bottom:4px">Value: <strong>${fmtCur(s.totalAmt)}</strong></div>
+        <div style="font-size:12px;color:#0D9488;margin-bottom:4px">🚚 Avg Delivery: <strong>${avgDel!==null?avgDel+"m":"—"}</strong></div>
+        <div style="font-size:12px;color:#059669">✅ Completion: <strong>${rate}%</strong></div>
+      </div>`;
+    }).join("") || "<p style='color:#94A3B8;font-size:13px'>No delivery data</p>"}
+    </div>`;
 }
 
 function renderTimingMetrics(data) {
@@ -1291,115 +1427,139 @@ function renderTimingChart(elId, data, mode) {
 }
 
 // ── FILTERS ───────────────────────────────────────────────────
-function renderFilters() {
-  renderFilterBar("masterFilters",    "master");
-  renderFilterBar("pendingFilters",   "pending",  true);
-  renderFilterBar("analyticsFilters", "analytics", true);
+// Filters use PERSISTENT inputs — never re-render the inputs themselves
+// to avoid keyboard dismissal on mobile.
+// Inputs are created once in initFilterBars() called on page load.
+
+function initFilterBars() {
+  initFilterBar("masterFilters",    "master",    false);
+  initFilterBar("pendingFilters",   "pending",   true);
+  initFilterBar("analyticsFilters", "analytics", true);
+  initFilterBar("summaryFilters",   "summary",   false, true);
 }
 
-function renderFilterBar(elId, key, noPendingFilter) {
-  const f   = filters[key] || {};
-  const el  = document.getElementById(elId);
+function initFilterBar(elId, key, pendingOnly, noStatus) {
+  const el = document.getElementById(elId);
   if (!el) return;
-  const hasClear = Object.values(f).some(v=>v);
+  // Build once, bind events imperatively so inputs persist across renderAll
   el.innerHTML = `
-    <div class="filter-combo-wrap">
-      <input class="filter-input" placeholder="🔍 Search name / bill…" value="${f.search||""}"
-        oninput="setFilter('${key}','search',this.value)" style="min-width:170px"/>
-    </div>
-    ${!noPendingFilter?`
-    <div class="filter-combo-wrap" id="fwrap_${key}_status">
-      <input class="filter-input filter-combo" id="finp_${key}_status" placeholder="Status: All"
-        value="${f.status||""}" autocomplete="off" style="min-width:130px"
-        oninput="filterComboInput('${key}','status',this.value,['pending','received'],this)"
-        onfocus="showComboDropdown('${key}','status',['pending','received'],this)"
-        onblur="hideComboDropdown('${key}_status')" />
-      <div class="combo-dropdown" id="cdrop_${key}_status"></div>
-    </div>`:""}
-    <div class="filter-combo-wrap" id="fwrap_${key}_mode">
-      <input class="filter-input filter-combo" id="finp_${key}_mode" placeholder="Payment Mode: All"
-        value="${f.paymentMode||""}" autocomplete="off" style="min-width:155px"
-        oninput="filterComboInput('${key}','paymentMode',this.value,DELIVERY_MODES,this)"
-        onfocus="showComboDropdown('${key}','paymentMode',DELIVERY_MODES,this)"
-        onblur="hideComboDropdown('${key}_mode')" />
-      <div class="combo-dropdown" id="cdrop_${key}_mode"></div>
-    </div>
-    <div class="filter-combo-wrap">
-      <input class="filter-input" type="date" value="${f.dateFrom||""}"
-        onchange="setFilter('${key}','dateFrom',this.value)" title="From Date" placeholder="From" style="min-width:130px"/>
-    </div>
-    <div class="filter-combo-wrap">
-      <input class="filter-input" type="date" value="${f.dateTo||""}"
-        onchange="setFilter('${key}','dateTo',this.value)" title="To Date" placeholder="To" style="min-width:130px"/>
-    </div>
-    ${hasClear?`<button class="btn-clear" onclick="clearFilter('${key}')">✕ Clear All</button>`:""}
+    <input class="filter-input" id="fsearch_${key}" placeholder="🔍 Search by customer name…"
+      autocomplete="off" autocorrect="off" spellcheck="false"
+      style="min-width:200px;max-width:280px" />
+    ${!noStatus && !pendingOnly ? `
+    <select class="filter-input" id="fstatus_${key}" style="min-width:120px">
+      <option value="">All Status</option>
+      <option value="pending">Pending</option>
+      <option value="received">Received</option>
+    </select>` : ""}
+    <input class="filter-input" id="fdate_from_${key}" type="date"
+      style="min-width:140px" title="From Date" />
+    <input class="filter-input" id="fdate_to_${key}" type="date"
+      style="min-width:140px" title="To Date" />
+    <button class="btn-clear" id="fclear_${key}" onclick="clearFilter('${key}')" style="display:none">✕ Clear</button>
   `;
-}
 
-function filterComboInput(key, field, val, options, el) {
-  const q   = val.toLowerCase();
-  const filtered = options.filter(o => o.toLowerCase().includes(q));
-  const drop = document.getElementById(`cdrop_${key}_${field}`);
-  if (!drop) return;
-  if (filtered.length && val) {
-    drop.innerHTML = filtered.map(o =>
-      `<div class="combo-option" onmousedown="pickComboOption('${key}','${field}','${o}',event)">${o}</div>`
-    ).join("");
-    drop.style.display = "block";
-  } else {
-    drop.style.display = "none";
+  // Bind events imperatively (no re-render)
+  const searchEl = document.getElementById(`fsearch_${key}`);
+  if (searchEl) {
+    searchEl.addEventListener("input", () => {
+      filters[key] = filters[key] || {};
+      filters[key].search = searchEl.value;
+      renderTablesOnly();
+      updateClearBtn(key);
+    });
   }
-  // Apply filter on typing exact match or empty
-  const exact = options.find(o => o.toLowerCase() === q);
-  if (!val || exact) setFilter(key, field, exact || "");
+
+  const statusEl = document.getElementById(`fstatus_${key}`);
+  if (statusEl) {
+    statusEl.addEventListener("change", () => {
+      filters[key] = filters[key] || {};
+      filters[key].status = statusEl.value;
+      renderTablesOnly();
+      updateClearBtn(key);
+    });
+  }
+
+  const fromEl = document.getElementById(`fdate_from_${key}`);
+  if (fromEl) {
+    fromEl.addEventListener("change", () => {
+      filters[key] = filters[key] || {};
+      filters[key].dateFrom = fromEl.value;
+      renderTablesOnly();
+      updateClearBtn(key);
+    });
+  }
+
+  const toEl = document.getElementById(`fdate_to_${key}`);
+  if (toEl) {
+    toEl.addEventListener("change", () => {
+      filters[key] = filters[key] || {};
+      filters[key].dateTo = toEl.value;
+      renderTablesOnly();
+      updateClearBtn(key);
+    });
+  }
 }
 
-function showComboDropdown(key, field, options, el) {
-  const drop = document.getElementById(`cdrop_${key}_${field}`);
-  if (!drop) return;
-  const cur = (el.value || "").toLowerCase();
-  const filtered = options.filter(o => !cur || o.toLowerCase().includes(cur));
-  drop.innerHTML = [
-    `<div class="combo-option combo-all" onmousedown="pickComboOption('${key}','${field}','',event)">All</div>`,
-    ...filtered.map(o => `<div class="combo-option${(filters[key]||{})[field]===o?' combo-selected':''}" onmousedown="pickComboOption('${key}','${field}','${o}',event)">${o}</div>`)
-  ].join("");
-  drop.style.display = "block";
+function updateClearBtn(key) {
+  const f = filters[key] || {};
+  const hasFilter = Object.values(f).some(v => v);
+  const btn = document.getElementById(`fclear_${key}`);
+  if (btn) btn.style.display = hasFilter ? "" : "none";
 }
 
-function pickComboOption(key, field, val, event) {
-  event.preventDefault();
-  const inp = document.getElementById(`finp_${key}_${field}`);
-  if (inp) inp.value = val;
-  const drop = document.getElementById(`cdrop_${key}_${field}`);
-  if (drop) drop.style.display = "none";
-  setFilter(key, field, val);
+// renderTablesOnly: re-renders table data WITHOUT touching filter inputs
+function renderTablesOnly() {
+  const pending      = allEntries.filter(e => e.Status === "pending");
+  const totalPending = pending.reduce((s,e) => s + Number(e.Amount||0), 0);
+
+  document.getElementById("headerActive").textContent  = pending.length;
+  document.getElementById("headerPending").textContent = fmtCur(totalPending);
+  const badge = document.getElementById("pendingBadge");
+  if (pending.length) { badge.textContent = pending.length; badge.style.display = "inline"; }
+  else badge.style.display = "none";
+
+  renderTable("masterTable",  "masterCount",  applyFilter(allEntries, filters.master),  false);
+  renderTable("pendingTable", "pendingCount", applyFilter(pending,    filters.pending), true);
+  renderPendingStats(pending);
+  renderSummary(allEntries, pending, totalPending);
+  if (activeTab === "analytics") renderAnalytics();
+  // Update all clear buttons
+  ["master","pending","analytics","summary"].forEach(k => updateClearBtn(k));
 }
 
-function hideComboDropdown(id) {
-  setTimeout(() => {
-    const drop = document.getElementById("cdrop_" + id);
-    if (drop) drop.style.display = "none";
-  }, 150);
+function clearFilter(key) {
+  filters[key] = {};
+  // Reset visible input values
+  const s = document.getElementById(`fsearch_${key}`);    if (s) s.value = "";
+  const st= document.getElementById(`fstatus_${key}`);    if (st) st.value = "";
+  const fd= document.getElementById(`fdate_from_${key}`); if (fd) fd.value = "";
+  const td= document.getElementById(`fdate_to_${key}`);   if (td) td.value = "";
+  updateClearBtn(key);
+  renderTablesOnly();
 }
 
-function setFilter(key, field, val) {
-  filters[key] = filters[key] || {};
-  filters[key][field] = val;
-  renderAll();
+function renderFilters() {
+  // Noop — filters are persistent now; only called to maintain compatibility
 }
-function clearFilter(key) { filters[key] = {}; renderAll(); }
 
 function applyFilter(data, f) {
   if (!f) return data;
   return data.filter(e => {
-    const s = (f.search||"").toLowerCase();
-    if (s && !`${e.CustomerName} ${e.BillNumber} ${e.TakenBy} ${e.DeliveryPerson}`.toLowerCase().includes(s)) return false;
-    if (f.status      && e.Status !== f.status) return false;
-    if (f.paymentMode && e.ExpectedPaymentMode !== f.paymentMode && e.PaymentMode !== f.paymentMode) return false;
-    if (f.dateFrom    && e.Date < f.dateFrom)   return false;
-    if (f.dateTo      && e.Date > f.dateTo)     return false;
+    const s = (f.search||"").toLowerCase().trim();
+    if (s && !e.CustomerName.toLowerCase().includes(s)) return false;
+    if (f.status   && e.Status !== f.status) return false;
+    if (f.dateFrom && e.Date < f.dateFrom)   return false;
+    if (f.dateTo   && e.Date > f.dateTo)     return false;
     return true;
   });
+}
+
+function setFilter(key, field, val) {
+  // legacy shim — kept for any direct calls
+  filters[key] = filters[key] || {};
+  filters[key][field] = val;
+  renderTablesOnly();
 }
 
 // ── MODALS ────────────────────────────────────────────────────
@@ -1551,6 +1711,11 @@ function switchTab(tab) {
     document.querySelector(`[data-tab="${t}"]`).classList.toggle("active", t===tab);
   });
   if (tab==="analytics") renderAnalytics();
+  if (tab==="summary")   {
+    // ensure summary filter bar is initialised (may not be if it was hidden on load)
+    const sf = document.getElementById("summaryFilters");
+    if (sf && !sf.querySelector("input")) initFilterBars();
+  }
 }
 
 function setGroup(g) {
@@ -1661,6 +1826,7 @@ function getSampleData() {
 // ── INIT ──────────────────────────────────────────────────────
 window.onload = () => {
   allEntries = getSampleData();
+  initFilterBars(); // creates persistent inputs — must run before renderAll
   renderAll();
   if (APPS_SCRIPT_URL !== "YOUR_APPS_SCRIPT_WEB_APP_URL") loadData();
 };
