@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>DeliverEase — Home Delivery Management</title>
+<title>DeliverEase — Home Delivery Management System</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Lora:wght@600;700&display=swap" rel="stylesheet" />
 <style>
@@ -107,6 +107,15 @@
   .td-actions { white-space: nowrap; }
   .badge-mode { background: var(--blue-bg); color: var(--blue); padding: 2px 7px; border-radius: 12px; font-size: 10px; font-weight: 700; white-space: nowrap; }
   .badge-expected { background: var(--orange-bg); color: var(--orange); padding: 2px 7px; border-radius: 12px; font-size: 10px; font-weight: 700; white-space: nowrap; }
+  .badge-delivery  { background: #EFF6FF; color: #1D4ED8; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 700; white-space: nowrap; }
+  .badge-paylater  { background: #FEF3C7; color: #92400E; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 700; white-space: nowrap; }
+  .act-btn-sms     { background: #F0F9FF; color: #0284C7; }
+  .order-type-toggle { display:flex; gap:0; border-radius:10px; overflow:hidden; border:2px solid var(--slate-200); }
+  .ott-btn { flex:1; padding:10px 8px; border:none; font-size:13px; font-weight:700; cursor:pointer; transition: all .2s; background: var(--slate-50); color: var(--slate-600); }
+  .ott-btn.active-delivery { background: #1D4ED8; color:#fff; }
+  .ott-btn.active-paylater { background: #92400E; color:#fff; }
+  .delivery-only { transition: opacity .2s; }
+  .delivery-only.hidden { opacity:.3; pointer-events:none; }
   .badge-status { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; white-space: nowrap; }
   .badge-pending  { background: #FEF3C7; color: #92400E; }
   .badge-received { background: var(--green-100); color: #065F46; }
@@ -118,9 +127,22 @@
   .act-btn { border: none; border-radius: 6px; padding: 4px 7px; font-size: 11px; font-weight: 700; margin-right: 3px; cursor: pointer; }
   .act-btn-receive { background: var(--green-100); color: #065F46; }
   .act-btn-wa      { background: #DCFCE7; color: var(--green-600); }
+  .act-btn-followup{ background: #FEF3C7; color: #92400E; }
   .act-btn-group   { background: var(--orange-bg); color: var(--orange); }
   .act-btn-edit    { background: var(--blue-bg); color: var(--blue); }
   .act-btn-del     { background: var(--red-bg); color: var(--red); }
+
+  /* ── Combo Filter ── */
+  .filter-combo-wrap { position: relative; display: inline-block; }
+  .filter-combo { cursor: default; }
+  .combo-dropdown { position: absolute; top: calc(100% + 4px); left: 0; z-index: 200;
+    background: #fff; border: 1.5px solid var(--slate-200); border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.12); min-width: 100%; max-height: 200px; overflow-y: auto;
+    display: none; }
+  .combo-option { padding: 8px 14px; font-size: 13px; cursor: pointer; color: var(--slate-800); }
+  .combo-option:hover { background: var(--green-50); }
+  .combo-all { color: var(--slate-400); font-style: italic; }
+  .combo-selected { background: var(--green-50); color: var(--green-800); font-weight: 700; }
 
   /* ── Empty State ── */
   .empty { padding: 60px; text-align: center; color: var(--slate-400); }
@@ -405,18 +427,30 @@
         <div class="photo-badge">📸 Bill photo attached — will be shared with customer</div>
       </div>
       <p style="font-size:12px;font-weight:700;color:var(--slate-600);margin:18px 0 12px;text-transform:uppercase;letter-spacing:.06em">Quick Actions</p>
-      <button class="post-save-btn wa-customer" onclick="shareWithCustomer()">
-        📱 Send Bill to Customer via WhatsApp
-      </button>
-      <button class="post-save-btn wa-group" onclick="sendGroupAlertFromModal()">
-        🚚 Alert Delivery Team via WhatsApp
-      </button>
-      <button class="btn-cancel" style="width:100%;padding:11px;text-align:center" onclick="closePostSaveModal()">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <button class="post-save-btn wa-customer" onclick="shareWithCustomer()" style="margin-bottom:0">
+          📱 Bill via WhatsApp
+        </button>
+        <button class="post-save-btn" style="background:linear-gradient(135deg,#0369A1,#0EA5E9);margin-bottom:0" onclick="sendSMSFromModal()">
+          💬 Bill via SMS
+        </button>
+      </div>
+      <div id="postSaveGroupAlert"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+        <button class="post-save-btn" style="background:linear-gradient(135deg,#92400E,#B45309);margin-bottom:0" onclick="sendFollowUpFromModal()">
+          🔔 Follow-up via WhatsApp
+        </button>
+        <button class="post-save-btn" style="background:linear-gradient(135deg,#0F766E,#0D9488);margin-bottom:0" onclick="sendFollowUpSMSFromModal()">
+          💬 Follow-up via SMS
+        </button>
+      </div>
+      <button class="btn-cancel" style="width:100%;padding:11px;text-align:center;margin-top:10px" onclick="closePostSaveModal()">
         Done — Skip for now
       </button>
       <p class="post-save-tip">
-        💡 On mobile, the bill photo can be shared directly via WhatsApp.<br>
-        On desktop, WhatsApp opens with the message — attach the image manually.
+        💡 WhatsApp opens a direct chat with the customer's number pre-filled.<br>
+        SMS opens your default messaging app if WhatsApp is unavailable.<br>
+        On mobile, the bill photo can be shared directly via WhatsApp.
       </p>
     </div>
   </div>
@@ -428,14 +462,16 @@
 // ║  🔧  CONFIGURATION — UPDATE THESE VALUES                ║
 // ╚══════════════════════════════════════════════════════════╝
 const APPS_SCRIPT_URL      = "https://script.google.com/macros/s/AKfycbwkupivAAta3mVzzAP2pg_rnXBGCAQT1DLw19tWqfMt_O35mPCE8Uw784WFZW43EtcHNg/exec";
-const SHOP_NAME            = "Amaze On";
-const DELIVERY_GROUP_PHONE = "919717762233; 918610456529;917395865732;919751745184"; // e.g. "919876543210"
+const SHOP_NAME            = "Your Shop Name";
+const DELIVERY_GROUP_PHONE = "YOUR_DELIVERY_GROUP_PHONE"; // e.g. "919876543210"
 const COUNTRY_CODE         = "91"; // India
 // ────────────────────────────────────────────────────────────
 
 const DELIVERY_MODES = ["Paytm", "Cash", "Phonepe", "Razorpay", "Card", "Sodexo"];
 
 const FORM_FIELDS = [
+  // ── Order Type (rendered specially by renderForm) ──
+  { key:"OrderType",         label:"Order Type",           type:"ordertype", half:false },
   // ── Order Details ──
   { key:"_s1",               label:"📦 Order Details",    type:"section" },
   { key:"Date",              label:"Order Date",           type:"date",     half:true },
@@ -449,8 +485,9 @@ const FORM_FIELDS = [
   { key:"TakenBy",           label:"Order Taken By",       type:"text",     half:true },
   { key:"OrderTime",         label:"Order Received Time",  type:"time",     half:true },
   { key:"BilledTime",        label:"Order Billed Time",    type:"time",     half:true },
-  { key:"DeliveryTime",      label:"Delivery Time",        type:"time",     half:true },
-  { key:"DeliveryPerson",    label:"Delivery Person",      type:"text",     half:true },
+  // Delivery-only fields (hidden for Pay Later)
+  { key:"DeliveryTime",      label:"Delivery Time",        type:"time",     half:true,  deliveryOnly:true },
+  { key:"DeliveryPerson",    label:"Delivery Person",      type:"text",     half:true,  deliveryOnly:true },
   { key:"PaymentMode",       label:"Actual Payment Mode",  type:"select",   half:true, options: DELIVERY_MODES, editOnly:true },
   // ── Edit-only ──
   { key:"Status",            label:"Status",               type:"select",   half:true, options:["pending","received"], editOnly:true },
@@ -472,17 +509,39 @@ let groupBy       = "day";
 let filters       = { master:{}, pending:{}, analytics:{} };
 
 // ── API ──────────────────────────────────────────────────────
-async function api(method, body) {
-  const isDemo = APPS_SCRIPT_URL === "https://script.google.com/macros/s/AKfycbwkupivAAta3mVzzAP2pg_rnXBGCAQT1DLw19tWqfMt_O35mPCE8Uw784WFZW43EtcHNg/execL";
+// Retry with exponential backoff to handle concurrent device access safely
+async function api(method, body, retries = 4) {
+  const isDemo = APPS_SCRIPT_URL === "https://script.google.com/macros/s/AKfycbwkupivAAta3mVzzAP2pg_rnXBGCAQT1DLw19tWqfMt_O35mPCE8Uw784WFZW43EtcHNg/exec";
   if (isDemo) { showToast("Demo mode — connect your Google Sheet first", "info"); return null; }
-  try {
-    const opts = method === "GET" ? { method:"GET" } : { method:"POST", body: JSON.stringify(body) };
-    const res  = await fetch(APPS_SCRIPT_URL, opts);
-    const data = await res.json();
-    if (data.error) { showToast("Error: " + data.error, "error"); return null; }
-    return data;
-  } catch(e) { showToast("Network error: " + e.message, "error"); return null; }
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const opts = method === "GET"
+        ? { method:"GET" }
+        : { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body) };
+      const res = await fetch(APPS_SCRIPT_URL, opts);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (data.error) {
+        // Retry on lock contention errors from Apps Script
+        if (attempt < retries && data.error.includes("Lock")) {
+          await sleep(300 * Math.pow(2, attempt) + Math.random() * 200);
+          continue;
+        }
+        showToast("Error: " + data.error, "error"); return null;
+      }
+      return data;
+    } catch(e) {
+      if (attempt < retries) {
+        await sleep(400 * Math.pow(2, attempt) + Math.random() * 300);
+        continue;
+      }
+      showToast("Network error: " + e.message + ". Please retry.", "error"); return null;
+    }
+  }
+  return null;
 }
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 async function loadData() {
   const syncBtn = document.getElementById("syncBtn");
@@ -492,7 +551,7 @@ async function loadData() {
   if (data && data.entries) {
     allEntries = data.entries;
     showToast("Synced " + allEntries.length + " orders ✓");
-  } else if (APPS_SCRIPT_URL === "https://script.google.com/macros/s/AKfycbwkupivAAta3mVzzAP2pg_rnXBGCAQT1DLw19tWqfMt_O35mPCE8Uw784WFZW43EtcHNg/exec") {
+  } else if (APPS_SCRIPT_URL === "https://script.google.com/macros/s/AKfycbwkupivAAta3mVzzAP2pg_rnXBGCAQT1DLw19tWqfMt_O35mPCE8Uw784WFZW43EtcHNg/execL") {
     allEntries = getSampleData();
   }
   syncBtn.innerHTML = "🔄 Sync";
@@ -587,15 +646,26 @@ function openPostSaveModal() {
 
   const custPending = allEntries.filter(x => x.CustomerName === e.CustomerName && x.Status === "pending");
   const totalDue    = custPending.reduce((s,x) => s + Number(x.Amount||0), 0);
+  const isDelivery  = (e.OrderType || "Home Delivery") !== "Pay Later";
 
   document.getElementById("postSaveInfo").innerHTML =
-    `<strong>📦 ${e.BillNumber}</strong> — <strong>${e.CustomerName}</strong><br>` +
-    `📞 ${e.Phone || "—"} &nbsp;|&nbsp; 💰 ${fmtCur(e.Amount)}<br>` +
-    `💳 Expected Payment: <strong>${e.ExpectedPaymentMode || "—"}</strong>` +
+    `${isDelivery?"🚚":"🏪"} <strong>${e.OrderType||"Home Delivery"}</strong> &nbsp;|&nbsp; <strong>📦 ${e.BillNumber}</strong><br>` +
+    `👤 <strong>${e.CustomerName}</strong> &nbsp;|&nbsp; 📞 ${e.Phone || "—"}<br>` +
+    `💰 ${fmtCur(e.Amount)} &nbsp;|&nbsp; 💳 Expected: <strong>${e.ExpectedPaymentMode || "—"}</strong>` +
     (custPending.length > 1 ? `<br><span style="color:#DC2626;font-weight:700">⚠️ ${custPending.length} pending bills total: ${fmtCur(totalDue)}</span>` : "");
 
   const photoNote = document.getElementById("postSavePhotoNote");
   photoNote.style.display = billPhotoFile ? "block" : "none";
+
+  // Show/hide delivery group alert button based on order type
+  const alertWrap = document.getElementById("postSaveGroupAlert");
+  if (alertWrap) {
+    alertWrap.innerHTML = isDelivery
+      ? `<button class="post-save-btn wa-group" style="margin-top:10px" onclick="sendGroupAlertFromModal()">🚚 Alert Delivery Team via WhatsApp</button>`
+      : `<div style="background:#FFFBEB;border:1.5px solid #FCD34D;border-radius:8px;padding:10px 14px;margin-top:10px;font-size:12px;color:#92400E">
+           🏪 <strong>Walk-in / Pay Later order</strong> — no delivery team alert needed.
+         </div>`;
+  }
 
   document.getElementById("postSaveModal").style.display = "flex";
 }
@@ -611,32 +681,83 @@ function buildCustomerMessage(entry) {
   const custPending = allEntries.filter(x => x.CustomerName === entry.CustomerName && x.Status === "pending");
   const totalDue    = custPending.reduce((s,x) => s + Number(x.Amount||0), 0);
 
+  const isDelivery = (entry.OrderType || "Home Delivery") !== "Pay Later";
   const lines = [
-    `🧾 *Bill from ${SHOP_NAME}*`, ``,
+    isDelivery ? `🚚 *Bill from ${SHOP_NAME}*` : `🏪 *Payment Pending — ${SHOP_NAME}*`, ``,
     `Dear ${entry.CustomerName},`,
+    isDelivery ? `` : `Thank you for visiting us! Your payment is pending.`,
   ];
 
   if (custPending.length > 1) {
     lines.push(`You have ${custPending.length} outstanding bills:`, ``);
-    custPending.forEach((b,i) => lines.push(`${i+1}. Bill No: ${b.BillNumber} | ${fmtDate(b.Date)} | ${fmtCur(b.Amount)}`));
+    custPending.forEach((b,i) => lines.push(`  ${i+1}. Bill No: *${b.BillNumber}* | ${fmtDate(b.Date)} | *${fmtCur(b.Amount)}*`));
     lines.push(``, `💰 *Total Outstanding: ${fmtCur(totalDue)}*`);
   } else {
     lines.push(
       `Please find your bill details below:`, ``,
-      `📄 Bill No: ${entry.BillNumber}`,
+      `📄 Bill No: *${entry.BillNumber}*`,
       `📅 Date: ${fmtDate(entry.Date)}`,
-      `💰 Amount: ${fmtCur(entry.Amount)}`,
+      `💰 Amount Due: *${fmtCur(entry.Amount)}*`,
     );
   }
 
   lines.push(
     ``,
-    `💳 Payment Mode: ${entry.ExpectedPaymentMode || entry.PaymentMode || "—"}`,
+    `💳 Payment Mode: *${entry.ExpectedPaymentMode || entry.PaymentMode || "—"}*`,
+    ``,
+    `📸 *Kindly share the screenshot of your payment transaction after making the payment so that we can update our records and mark your account as closed.*`,
     ``,
     `Kindly make the payment at your earliest convenience.`,
     `Thank you for your business! 🙏`,
+    `— *${SHOP_NAME}*`,
   );
   return lines.join("\n");
+}
+
+function buildFollowUpMessage(customerName) {
+  const custPending = allEntries.filter(x => x.CustomerName === customerName && x.Status === "pending");
+  if (!custPending.length) { showToast("No pending bills for this customer", "info"); return null; }
+  const totalDue = custPending.reduce((s,x) => s + Number(x.Amount||0), 0);
+  const oldest   = custPending.slice().sort((a,b)=>a.Date.localeCompare(b.Date))[0];
+  const daysPending = Math.floor((Date.now() - new Date(oldest.Date)) / 86400000);
+
+  const lines = [
+    `⚠️ *Payment Follow-up — ${SHOP_NAME}*`, ``,
+    `Dear ${customerName},`,
+    ``,
+    `This is a gentle reminder that you have *${custPending.length} outstanding bill(s)* with us.`,
+    ``,
+    `📋 *Pending Bill Details:*`,
+  ];
+  custPending.forEach((b,i) => {
+    lines.push(``, `*${i+1}. Bill No: ${b.BillNumber}*`);
+    lines.push(`   📅 Date: ${fmtDate(b.Date)}`);
+    lines.push(`   💰 Amount: *${fmtCur(b.Amount)}*`);
+    lines.push(`   💳 Mode: ${b.ExpectedPaymentMode || b.PaymentMode || "—"}`);
+  });
+  lines.push(
+    ``,
+    `━━━━━━━━━━━━━━━━━`,
+    `💰 *Total Outstanding: ${fmtCur(totalDue)}*`,
+    `━━━━━━━━━━━━━━━━━`,
+    ``,
+    daysPending > 0 ? `⏰ Oldest bill is *${daysPending} day(s)* overdue.` : ``,
+    ``,
+    `📸 Kindly make the payment and share the *screenshot of the transaction* with us so we can close your account immediately.`,
+    ``,
+    `Please settle the amount at your earliest convenience.`,
+    `Thank you! 🙏`,
+    `— *${SHOP_NAME}*`,
+  ).filter(l => l !== undefined);
+  return lines.join("\n");
+}
+
+function sendFollowUp(id) {
+  const e = allEntries.find(x => x.ID === id);
+  if (!e) return;
+  const msg = buildFollowUpMessage(e.CustomerName);
+  if (!msg) return;
+  openWhatsApp(e.Phone, msg, null, "Follow-up");
 }
 
 function buildGroupAlertMessage(entry) {
@@ -667,30 +788,71 @@ function buildGroupAlertMessage(entry) {
 function shareWithCustomer() {
   const e = lastSavedEntry;
   if (!e) return;
-  const ph  = (e.Phone || "").replace(/\D/g,"");
-  const msg = buildCustomerMessage(e);
+  openWhatsApp(e.Phone, buildCustomerMessage(e), billPhotoFile, `Bill - ${e.BillNumber}`);
+}
 
-  if (billPhotoFile && navigator.canShare) {
-    const shareData = { files: [billPhotoFile], text: msg, title: `Bill - ${e.BillNumber}` };
+// Core WhatsApp opener — always opens direct chat via wa.me, with optional photo share on mobile
+function openWhatsApp(phone, msg, photoFile, shareTitle) {
+  const ph = (phone || "").replace(/\D/g,"");
+  if (!ph || ph.length < 10) {
+    showToast("⚠️ Phone number missing or invalid — cannot open WhatsApp", "error");
+    return;
+  }
+  const waUrl = `https://wa.me/${COUNTRY_CODE}${ph}?text=${encodeURIComponent(msg)}`;
+
+  // If photo attached AND on mobile with Web Share API → share natively (opens WhatsApp share sheet)
+  if (photoFile && typeof navigator.share === "function" && typeof navigator.canShare === "function") {
+    const shareData = { files: [photoFile], text: msg, title: shareTitle || "Bill" };
     if (navigator.canShare(shareData)) {
       navigator.share(shareData)
-        .then(() => showToast("Bill shared! ✓"))
+        .then(() => showToast("Shared via WhatsApp ✓"))
         .catch(err => {
           if (err.name !== "AbortError") {
-            window.open(`https://wa.me/${COUNTRY_CODE}${ph}?text=${encodeURIComponent(msg)}`, "_blank");
-            showToast("📸 Please attach the bill image manually in WhatsApp", "info");
+            window.open(waUrl, "_blank");
+            showToast("📸 Attach bill image manually in WhatsApp", "info");
           }
         });
       return;
     }
   }
 
-  if (billPhotoFile) showToast("📸 Attach bill image manually after WhatsApp opens", "info");
-  window.open(`https://wa.me/${COUNTRY_CODE}${ph}?text=${encodeURIComponent(msg)}`, "_blank");
+  // Default: open WhatsApp direct chat with message pre-filled
+  window.open(waUrl, "_blank");
+  if (photoFile) showToast("📸 Photo ready — attach it manually in WhatsApp after it opens", "info");
+}
+
+function openSMS(phone, msg) {
+  const ph = (phone || "").replace(/\D/g,"");
+  if (!ph || ph.length < 10) {
+    showToast("⚠️ Phone number missing or invalid — cannot open SMS", "error");
+    return;
+  }
+  // Build plain-text SMS (strip WhatsApp markdown bold/italic)
+  const plainMsg = msg.replace(/\*/g,"").replace(/~/g,"").replace(/_/g,"");
+  // Android uses ?body=, iOS uses &body= — using ? works on both via most browsers
+  const smsUrl = `sms:+${COUNTRY_CODE}${ph}?body=${encodeURIComponent(plainMsg)}`;
+  window.open(smsUrl, "_blank");
 }
 
 function sendGroupAlertFromModal() {
   if (lastSavedEntry) sendGroupAlert(lastSavedEntry.ID);
+}
+
+function sendFollowUpFromModal() {
+  if (lastSavedEntry) sendFollowUp(lastSavedEntry.ID);
+}
+
+function sendSMSFromModal() {
+  const e = lastSavedEntry;
+  if (!e) return;
+  openSMS(e.Phone, buildCustomerMessage(e));
+}
+
+function sendFollowUpSMSFromModal() {
+  const e = lastSavedEntry;
+  if (!e) return;
+  const msg = buildFollowUpMessage(e.CustomerName);
+  if (msg) openSMS(e.Phone, msg);
 }
 
 function sendGroupAlert(id) {
@@ -715,9 +877,21 @@ function sendGroupAlert(id) {
 function sendWhatsApp(id) {
   const e = allEntries.find(x => x.ID === id);
   if (!e) return;
-  const ph  = (e.Phone || "").replace(/\D/g,"");
-  const msg = buildCustomerMessage(e);
-  window.open(`https://wa.me/${COUNTRY_CODE}${ph}?text=${encodeURIComponent(msg)}`, "_blank");
+  openWhatsApp(e.Phone, buildCustomerMessage(e), null, `Bill - ${e.BillNumber}`);
+}
+
+function sendSMS(id) {
+  const e = allEntries.find(x => x.ID === id);
+  if (!e) return;
+  openSMS(e.Phone, buildCustomerMessage(e));
+}
+
+function sendFollowUpSMS(id) {
+  const e = allEntries.find(x => x.ID === id);
+  if (!e) return;
+  const msg = buildFollowUpMessage(e.CustomerName);
+  if (!msg) return;
+  openSMS(e.Phone, msg);
 }
 
 // ── RENDER ALL ────────────────────────────────────────────────
@@ -745,8 +919,8 @@ function renderAll() {
 // ── TABLE ─────────────────────────────────────────────────────
 function renderTable(tableId, countId, data, pendingOnly) {
   const table  = document.getElementById(tableId);
-  const cols   = ["Date","BillNumber","CustomerName","Phone","Amount","ExpectedPaymentMode","PaymentMode","TakenBy","OrderTime","BilledTime","DeliveryTime","DeliveryPerson","Status","Actions"];
-  const labels = ["Date","Bill No","Customer","Phone","Amount","Exp. Mode","Actual Mode","Taken By","Order Time","Billed Time","Del. Time","Del. Person","Status","Actions"];
+  const cols   = ["Type","Date","BillNumber","CustomerName","Phone","Amount","ExpectedPaymentMode","PaymentMode","TakenBy","OrderTime","BilledTime","DeliveryTime","DeliveryPerson","Status","Actions"];
+  const labels = ["Type","Date","Bill No","Customer","Phone","Amount","Exp. Mode","Actual Mode","Taken By","Order Time","Billed Time","Del. Time","Del. Person","Status","Actions"];
   table.querySelector("thead").innerHTML = `<tr>${labels.map(h=>`<th>${h}</th>`).join("")}</tr>`;
   if (!data.length) {
     table.querySelector("tbody").innerHTML = `<tr><td colspan="${cols.length}" class="empty"><div class="empty-icon">📭</div><div class="empty-text">No orders found</div></td></tr>`;
@@ -754,8 +928,14 @@ function renderTable(tableId, countId, data, pendingOnly) {
     return;
   }
   document.getElementById(countId).textContent = `(${data.length})`;
-  table.querySelector("tbody").innerHTML = data.map(e => `
+  table.querySelector("tbody").innerHTML = data.map(e => {
+    const isDelivery = (e.OrderType || "Home Delivery") !== "Pay Later";
+    const typeBadge = isDelivery
+      ? `<span class="badge-delivery">🚚 Delivery</span>`
+      : `<span class="badge-paylater">🏪 Pay Later</span>`;
+    return `
     <tr>
+      <td>${typeBadge}</td>
       <td>${fmtDate(e.Date)}</td>
       <td class="td-bill">${e.BillNumber||"—"}</td>
       <td class="td-name">${e.CustomerName||"—"}</td>
@@ -766,18 +946,21 @@ function renderTable(tableId, countId, data, pendingOnly) {
       <td>${e.TakenBy||"—"}</td>
       <td>${e.OrderTime||"—"}</td>
       <td>${e.BilledTime||"—"}</td>
-      <td>${e.DeliveryTime||"—"}</td>
-      <td>${e.DeliveryPerson||"—"}</td>
+      <td>${isDelivery?(e.DeliveryTime||"—"):"—"}</td>
+      <td>${isDelivery?(e.DeliveryPerson||"—"):"—"}</td>
       <td><span class="badge-status ${e.Status==="pending"?"badge-pending":"badge-received"}"><span class="dot ${e.Status==="pending"?"dot-pending":"dot-received"}"></span>${e.Status==="pending"?"Pending":"Received"}</span></td>
       <td class="td-actions">
-        ${e.Status==="pending"?`<button class="act-btn act-btn-receive" onclick="openReceiveModal('${e.ID}')" title="Mark Received">✓</button>`:""}
-        <button class="act-btn act-btn-wa"    onclick="sendWhatsApp('${e.ID}')"    title="WhatsApp Customer">📱</button>
-        <button class="act-btn act-btn-group" onclick="sendGroupAlert('${e.ID}')"  title="Alert Delivery Group">🚚</button>
-        <button class="act-btn act-btn-edit"  onclick="openEditModal('${e.ID}')"   title="Edit">✏️</button>
-        <button class="act-btn act-btn-del"   onclick="deleteEntry('${e.ID}')"     title="Delete">🗑</button>
+        ${e.Status==="pending"?`<button class="act-btn act-btn-receive" onclick="openReceiveModal('${e.ID}')" title="Mark Received">✓ Rcvd</button>`:""}
+        <button class="act-btn act-btn-wa"       onclick="sendWhatsApp('${e.ID}')"   title="Send Bill via WhatsApp">📱 WA</button>
+        <button class="act-btn act-btn-sms"      onclick="sendSMS('${e.ID}')"        title="Send Bill via SMS">💬 SMS</button>
+        ${e.Status==="pending"?`<button class="act-btn act-btn-followup" onclick="sendFollowUp('${e.ID}')" title="Follow-up via WhatsApp">🔔 WA F/U</button>`:""}
+        ${e.Status==="pending"?`<button class="act-btn act-btn-sms" onclick="sendFollowUpSMS('${e.ID}')" title="Follow-up via SMS">💬 SMS F/U</button>`:""}
+        ${isDelivery?`<button class="act-btn act-btn-group" onclick="sendGroupAlert('${e.ID}')" title="Alert Delivery Group">🚚 Alert</button>`:""}
+        <button class="act-btn act-btn-edit"     onclick="openEditModal('${e.ID}')"  title="Edit">✏️</button>
+        <button class="act-btn act-btn-del"      onclick="deleteEntry('${e.ID}')"    title="Delete">🗑</button>
       </td>
-    </tr>
-  `).join("");
+    </tr>`;
+  }).join("");
 }
 
 function renderPendingStats(pending) {
@@ -1010,20 +1193,83 @@ function renderFilterBar(elId, key, noPendingFilter) {
   if (!el) return;
   const hasClear = Object.values(f).some(v=>v);
   el.innerHTML = `
-    <input class="filter-input" placeholder="🔍 Search…" value="${f.search||""}" oninput="setFilter('${key}','search',this.value)" style="min-width:160px"/>
-    ${!noPendingFilter?`<select class="filter-input" onchange="setFilter('${key}','status',this.value)">
-      <option value="">All Status</option>
-      <option value="pending" ${f.status==="pending"?"selected":""}>Pending</option>
-      <option value="received" ${f.status==="received"?"selected":""}>Received</option>
-    </select>`:""}
-    <select class="filter-input" onchange="setFilter('${key}','paymentMode',this.value)">
-      <option value="">All Modes</option>
-      ${DELIVERY_MODES.map(m=>`<option value="${m}" ${f.paymentMode===m?"selected":""}>${m}</option>`).join("")}
-    </select>
-    <input class="filter-input" type="date" value="${f.dateFrom||""}" oninput="setFilter('${key}','dateFrom',this.value)" title="From" />
-    <input class="filter-input" type="date" value="${f.dateTo||""}"   oninput="setFilter('${key}','dateTo',this.value)"   title="To"   />
-    ${hasClear?`<button class="btn-clear" onclick="clearFilter('${key}')">✕ Clear</button>`:""}
+    <div class="filter-combo-wrap">
+      <input class="filter-input" placeholder="🔍 Search name / bill…" value="${f.search||""}"
+        oninput="setFilter('${key}','search',this.value)" style="min-width:170px"/>
+    </div>
+    ${!noPendingFilter?`
+    <div class="filter-combo-wrap" id="fwrap_${key}_status">
+      <input class="filter-input filter-combo" id="finp_${key}_status" placeholder="Status: All"
+        value="${f.status||""}" autocomplete="off" style="min-width:130px"
+        oninput="filterComboInput('${key}','status',this.value,['pending','received'],this)"
+        onfocus="showComboDropdown('${key}','status',['pending','received'],this)"
+        onblur="hideComboDropdown('${key}_status')" />
+      <div class="combo-dropdown" id="cdrop_${key}_status"></div>
+    </div>`:""}
+    <div class="filter-combo-wrap" id="fwrap_${key}_mode">
+      <input class="filter-input filter-combo" id="finp_${key}_mode" placeholder="Payment Mode: All"
+        value="${f.paymentMode||""}" autocomplete="off" style="min-width:155px"
+        oninput="filterComboInput('${key}','paymentMode',this.value,DELIVERY_MODES,this)"
+        onfocus="showComboDropdown('${key}','paymentMode',DELIVERY_MODES,this)"
+        onblur="hideComboDropdown('${key}_mode')" />
+      <div class="combo-dropdown" id="cdrop_${key}_mode"></div>
+    </div>
+    <div class="filter-combo-wrap">
+      <input class="filter-input" type="date" value="${f.dateFrom||""}"
+        oninput="setFilter('${key}','dateFrom',this.value)" title="From Date" placeholder="From" style="min-width:130px"/>
+    </div>
+    <div class="filter-combo-wrap">
+      <input class="filter-input" type="date" value="${f.dateTo||""}"
+        oninput="setFilter('${key}','dateTo',this.value)" title="To Date" placeholder="To" style="min-width:130px"/>
+    </div>
+    ${hasClear?`<button class="btn-clear" onclick="clearFilter('${key}')">✕ Clear All</button>`:""}
   `;
+}
+
+function filterComboInput(key, field, val, options, el) {
+  const q   = val.toLowerCase();
+  const filtered = options.filter(o => o.toLowerCase().includes(q));
+  const drop = document.getElementById(`cdrop_${key}_${field}`);
+  if (!drop) return;
+  if (filtered.length && val) {
+    drop.innerHTML = filtered.map(o =>
+      `<div class="combo-option" onmousedown="pickComboOption('${key}','${field}','${o}',event)">${o}</div>`
+    ).join("");
+    drop.style.display = "block";
+  } else {
+    drop.style.display = "none";
+  }
+  // Apply filter on typing exact match or empty
+  const exact = options.find(o => o.toLowerCase() === q);
+  if (!val || exact) setFilter(key, field, exact || "");
+}
+
+function showComboDropdown(key, field, options, el) {
+  const drop = document.getElementById(`cdrop_${key}_${field}`);
+  if (!drop) return;
+  const cur = (el.value || "").toLowerCase();
+  const filtered = options.filter(o => !cur || o.toLowerCase().includes(cur));
+  drop.innerHTML = [
+    `<div class="combo-option combo-all" onmousedown="pickComboOption('${key}','${field}','',event)">All</div>`,
+    ...filtered.map(o => `<div class="combo-option${(filters[key]||{})[field]===o?' combo-selected':''}" onmousedown="pickComboOption('${key}','${field}','${o}',event)">${o}</div>`)
+  ].join("");
+  drop.style.display = "block";
+}
+
+function pickComboOption(key, field, val, event) {
+  event.preventDefault();
+  const inp = document.getElementById(`finp_${key}_${field}`);
+  if (inp) inp.value = val;
+  const drop = document.getElementById(`cdrop_${key}_${field}`);
+  if (drop) drop.style.display = "none";
+  setFilter(key, field, val);
+}
+
+function hideComboDropdown(id) {
+  setTimeout(() => {
+    const drop = document.getElementById("cdrop_" + id);
+    if (drop) drop.style.display = "none";
+  }, 150);
 }
 
 function setFilter(key, field, val) {
@@ -1075,17 +1321,34 @@ function closeModal(id) { document.getElementById(id).style.display = "none"; }
 function closeModalOnBg(e, id) { if (e.target === document.getElementById(id)) closeModal(id); }
 
 function renderForm(data, isEdit) {
+  const currentOrderType = data.OrderType || "Home Delivery";
   document.getElementById("entryForm").innerHTML = FORM_FIELDS
     .filter(f => {
-      if (f.type === "section") return (!f.editOnly || isEdit) && (!f.addOnly || !isEdit);
+      if (f.type === "section" || f.type === "ordertype") return (!f.editOnly || isEdit) && (!f.addOnly || !isEdit);
       return (!f.editOnly || isEdit) && (!f.addOnly || !isEdit);
     })
     .map(f => {
-      // Section dividers
-      if (f.type === "section") {
-        return `<div class="form-section-title">${f.label}</div>`;
+      if (f.type === "section") return `<div class="form-section-title">${f.label}</div>`;
+
+      if (f.type === "ordertype") {
+        const isHD = currentOrderType !== "Pay Later";
+        return `<div class="form-group full" id="ordertype-wrap" style="margin-bottom:4px">
+          <label class="form-label" style="margin-bottom:6px">📋 Order Type</label>
+          <div class="order-type-toggle">
+            <button type="button" class="ott-btn ${isHD?"active-delivery":""}" id="ott-hd"
+              onclick="setOrderType('Home Delivery')">🚚 Home Delivery</button>
+            <button type="button" class="ott-btn ${!isHD?"active-paylater":""}" id="ott-pl"
+              onclick="setOrderType('Pay Later')">🏪 Pay Later (Walk-in)</button>
+          </div>
+          <input type="hidden" id="ff_OrderType" value="${currentOrderType}" />
+          <div id="ordertype-hint" style="font-size:11px;color:var(--slate-400);margin-top:5px">
+            ${isHD ? "Customer ordered remotely — goods will be delivered to their address." : "Customer visited the shop — payment is due later."}
+          </div>
+        </div>`;
       }
+
       const cls = f.half ? "form-group" : "form-group full";
+      const delivClass = f.deliveryOnly ? " delivery-only" : "";
       let inp = "";
       if (f.type === "select") {
         inp = `<select class="form-control" id="ff_${f.key}">
@@ -1094,26 +1357,42 @@ function renderForm(data, isEdit) {
       } else if (f.type === "textarea") {
         inp = `<textarea class="form-control" id="ff_${f.key}" rows="2">${data[f.key]||""}</textarea>`;
       } else if (f.type === "file") {
-        inp = `
-          <input class="form-control" type="file" id="ff_${f.key}" accept="image/*" capture="environment"
+        inp = `<input class="form-control" type="file" id="ff_${f.key}" accept="image/*" capture="environment"
             onchange="onBillPhotoSelected(this)" style="padding:6px"/>
           <div id="billPreview"></div>`;
       } else {
         inp = `<input class="form-control" type="${f.type}" id="ff_${f.key}" value="${data[f.key]||""}" />`;
       }
-      return `<div class="${cls}"><label class="form-label">${f.label}</label>${inp}</div>`;
+      return `<div class="${cls}${delivClass}" id="fgroup_${f.key}"><label class="form-label">${f.label}</label>${inp}</div>`;
     }).join("");
 
   // Defaults
-  if (!data.Date) {
-    const el = document.getElementById("ff_Date");
-    if (el) el.value = new Date().toISOString().split("T")[0];
-  }
-  // Default OrderTime to now
-  if (!data.OrderTime && !isEdit) {
-    const el = document.getElementById("ff_OrderTime");
-    if (el) el.value = new Date().toTimeString().slice(0,5);
-  }
+  if (!data.Date) { const el=document.getElementById("ff_Date"); if(el) el.value=new Date().toISOString().split("T")[0]; }
+  if (!data.OrderTime && !isEdit) { const el=document.getElementById("ff_OrderTime"); if(el) el.value=new Date().toTimeString().slice(0,5); }
+
+  // Apply delivery-only visibility on initial load
+  applyOrderTypeVisibility(currentOrderType);
+}
+
+function setOrderType(type) {
+  const inp = document.getElementById("ff_OrderType");
+  if (inp) inp.value = type;
+  const hdBtn = document.getElementById("ott-hd");
+  const plBtn = document.getElementById("ott-pl");
+  const hint  = document.getElementById("ordertype-hint");
+  if (hdBtn) { hdBtn.className = `ott-btn${type==="Home Delivery"?" active-delivery":""}`; }
+  if (plBtn) { plBtn.className = `ott-btn${type==="Pay Later"?" active-paylater":""}`; }
+  if (hint)  { hint.textContent = type==="Home Delivery"
+    ? "Customer ordered remotely — goods will be delivered to their address."
+    : "Customer visited the shop — payment is due later."; }
+  applyOrderTypeVisibility(type);
+}
+
+function applyOrderTypeVisibility(type) {
+  const isDelivery = type !== "Pay Later";
+  document.querySelectorAll(".delivery-only").forEach(el => {
+    el.classList.toggle("hidden", !isDelivery);
+  });
 }
 
 function onBillPhotoSelected(input) {
@@ -1203,12 +1482,12 @@ function showToast(msg, type="success") {
 // ── SAMPLE DATA ───────────────────────────────────────────────
 function getSampleData() {
   return [
-    { ID:"s1", Date:"2026-02-20", CustomerName:"Ramesh Kumar",  Phone:"9876543210", BillNumber:"INV-001", TakenBy:"Suresh",  OrderTime:"10:20", BilledTime:"10:35", DeliveryTime:"11:10", DeliveryPerson:"Ravi",  PaymentMode:"Cash",    ExpectedPaymentMode:"Cash",    Amount:1250, ReceivedBy:"",       Status:"pending",  Notes:"Regular customer" },
-    { ID:"s2", Date:"2026-02-20", CustomerName:"Priya Lakshmi", Phone:"9123456789", BillNumber:"INV-002", TakenBy:"Anand",   OrderTime:"11:00", BilledTime:"11:12", DeliveryTime:"11:50", DeliveryPerson:"Kumar", PaymentMode:"Paytm",   ExpectedPaymentMode:"Paytm",   Amount:850,  ReceivedBy:"",       Status:"pending",  Notes:"" },
-    { ID:"s3", Date:"2026-02-19", CustomerName:"Vijay Anand",   Phone:"9988776655", BillNumber:"INV-003", TakenBy:"Suresh",  OrderTime:"14:00", BilledTime:"14:18", DeliveryTime:"14:55", DeliveryPerson:"Ravi",  PaymentMode:"Phonepe", ExpectedPaymentMode:"Phonepe", Amount:2100, ReceivedBy:"Suresh", Status:"received", Notes:"" },
-    { ID:"s4", Date:"2026-02-19", CustomerName:"Ramesh Kumar",  Phone:"9876543210", BillNumber:"INV-004", TakenBy:"Anand",   OrderTime:"15:30", BilledTime:"15:42", DeliveryTime:"",      DeliveryPerson:"Kumar", PaymentMode:"Cash",    ExpectedPaymentMode:"Cash",    Amount:670,  ReceivedBy:"",       Status:"pending",  Notes:"2nd order same customer" },
-    { ID:"s5", Date:"2026-02-18", CustomerName:"Meena Devi",    Phone:"9000000001", BillNumber:"INV-005", TakenBy:"Suresh",  OrderTime:"09:45", BilledTime:"10:00", DeliveryTime:"10:40", DeliveryPerson:"Ravi",  PaymentMode:"Sodexo",  ExpectedPaymentMode:"Sodexo",  Amount:3200, ReceivedBy:"Suresh", Status:"received", Notes:"Bulk order" },
-    { ID:"s6", Date:"2026-02-18", CustomerName:"Arjun Pillai",  Phone:"9111222333", BillNumber:"INV-006", TakenBy:"Anand",   OrderTime:"13:15", BilledTime:"13:28", DeliveryTime:"14:05", DeliveryPerson:"Kumar", PaymentMode:"Card",    ExpectedPaymentMode:"Razorpay",Amount:1890, ReceivedBy:"Anand",  Status:"received", Notes:"" },
+    { ID:"s1", Date:"2026-02-20", OrderType:"Home Delivery", CustomerName:"Ramesh Kumar",  Phone:"9876543210", BillNumber:"INV-001", TakenBy:"Suresh",  OrderTime:"10:20", BilledTime:"10:35", DeliveryTime:"11:10", DeliveryPerson:"Ravi",  PaymentMode:"Cash",    ExpectedPaymentMode:"Cash",    Amount:1250, ReceivedBy:"",       Status:"pending",  Notes:"Regular customer" },
+    { ID:"s2", Date:"2026-02-20", OrderType:"Home Delivery", CustomerName:"Priya Lakshmi", Phone:"9123456789", BillNumber:"INV-002", TakenBy:"Anand",   OrderTime:"11:00", BilledTime:"11:12", DeliveryTime:"11:50", DeliveryPerson:"Kumar", PaymentMode:"Paytm",   ExpectedPaymentMode:"Paytm",   Amount:850,  ReceivedBy:"",       Status:"pending",  Notes:"" },
+    { ID:"s3", Date:"2026-02-19", OrderType:"Home Delivery", CustomerName:"Vijay Anand",   Phone:"9988776655", BillNumber:"INV-003", TakenBy:"Suresh",  OrderTime:"14:00", BilledTime:"14:18", DeliveryTime:"14:55", DeliveryPerson:"Ravi",  PaymentMode:"Phonepe", ExpectedPaymentMode:"Phonepe", Amount:2100, ReceivedBy:"Suresh", Status:"received", Notes:"" },
+    { ID:"s4", Date:"2026-02-19", OrderType:"Pay Later",     CustomerName:"Ramesh Kumar",  Phone:"9876543210", BillNumber:"INV-004", TakenBy:"Anand",   OrderTime:"15:30", BilledTime:"15:42", DeliveryTime:"",      DeliveryPerson:"",      PaymentMode:"Cash",    ExpectedPaymentMode:"Cash",    Amount:670,  ReceivedBy:"",       Status:"pending",  Notes:"Walk-in, paid later" },
+    { ID:"s5", Date:"2026-02-18", OrderType:"Pay Later",     CustomerName:"Meena Devi",    Phone:"9000000001", BillNumber:"INV-005", TakenBy:"Suresh",  OrderTime:"09:45", BilledTime:"10:00", DeliveryTime:"",      DeliveryPerson:"",      PaymentMode:"Sodexo",  ExpectedPaymentMode:"Sodexo",  Amount:3200, ReceivedBy:"Suresh", Status:"received", Notes:"Bulk walk-in order" },
+    { ID:"s6", Date:"2026-02-18", OrderType:"Home Delivery", CustomerName:"Arjun Pillai",  Phone:"9111222333", BillNumber:"INV-006", TakenBy:"Anand",   OrderTime:"13:15", BilledTime:"13:28", DeliveryTime:"14:05", DeliveryPerson:"Kumar", PaymentMode:"Card",    ExpectedPaymentMode:"Razorpay",Amount:1890, ReceivedBy:"Anand",  Status:"received", Notes:"" },
   ];
 }
 
