@@ -855,9 +855,13 @@ function buildCustomerMessage(entry) {
   return lines.join("\n");
 }
 
-function buildFollowUpMessage(customerName) {
+function buildFollowUpMessage(customerName, phone) {
+  const normPhone = (phone||"").replace(/\D/g,"").slice(-10); // last 10 digits
   const custPending = allEntries
-    .filter(x => x.CustomerName === customerName && x.Status === "pending")
+    .filter(x => {
+      const xPhone = (x.Phone||"").replace(/\D/g,"").slice(-10);
+      return normPhone && xPhone === normPhone && x.Status === "pending";
+    })
     .slice().sort((a,b) => (a.Date||"").localeCompare(b.Date||""));
   if (!custPending.length) { showToast("No pending bills for this customer", "info"); return null; }
   const totalDue    = custPending.reduce((s,x) => s + Number(x.Amount||0), 0);
@@ -895,7 +899,7 @@ function sendFollowUp(id) {
   const e = allEntries.find(x => x.ID === id);
   if (!e) { showToast("Order not found", "error"); return; }
   if (!e.Phone) { showToast("No phone number for this customer", "error"); return; }
-  const msg = buildFollowUpMessage(e.CustomerName);
+  const msg = buildFollowUpMessage(e.CustomerName, e.Phone);
   if (!msg) return;
   openWhatsApp(e.Phone, msg, null, "Payment Follow-up");
 }
@@ -904,7 +908,7 @@ function sendFollowUpSMS(id) {
   const e = allEntries.find(x => x.ID === id);
   if (!e) { showToast("Order not found", "error"); return; }
   if (!e.Phone) { showToast("No phone number for this customer", "error"); return; }
-  const msg = buildFollowUpMessage(e.CustomerName);
+  const msg = buildFollowUpMessage(e.CustomerName, e.Phone);
   if (!msg) return;
   openSMS(e.Phone, msg);
 }
@@ -1885,16 +1889,21 @@ function setGroup(g) {
 function fmtCur(n) { return "₹" + Number(n||0).toLocaleString("en-IN"); }
 function fmtDate(d) {
   if (!d) return "—";
+  const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  const str = String(d).trim();
+  // 1. Plain YYYY-MM-DD — split directly, no timezone confusion
+  const iso = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return `${iso[3].replace(/^0/,"")} ${months[+iso[2]-1]} ${iso[1]}`;
+  // 2. Sheets GMT string e.g. "Sat Jan 15 2025 00:00:00 GMT+0530 (IST)"
+  //    Extract day-month-year from the readable part before "00:00"
+  const gmt = str.match(/(\d{1,2})\s+(\w{3})\s+(\d{4})/);
+  if (gmt) return `${String(gmt[1]).padStart(2,"0")} ${gmt[2]} ${gmt[3]}`;
+  // 3. Fallback: JS Date parse (last resort)
   try {
-    let str = String(d);
-    // Google Sheets sometimes returns "Sat Jan 15 2025 00:00:00 GMT+0530 (IST)"
-    // Parse to a Date then format using LOCAL date parts to avoid timezone shift
     const dt = new Date(str);
-    if (isNaN(dt)) return str;
-    // Use getFullYear/Month/Date (local) to avoid UTC-vs-local drift
-    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-    return `${String(dt.getDate()).padStart(2,"0")} ${months[dt.getMonth()]} ${dt.getFullYear()}`;
-  } catch { return String(d); }
+    if (!isNaN(dt)) return `${String(dt.getDate()).padStart(2,"0")} ${months[dt.getMonth()]} ${dt.getFullYear()}`;
+  } catch(_) {}
+  return str; // absolute last resort — show as-is
 }
 // Format a time string "HH:MM" → "10:20 AM"
 // Also handles Google Sheets returning Date objects serialised as strings like
