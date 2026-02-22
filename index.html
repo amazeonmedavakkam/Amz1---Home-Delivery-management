@@ -264,7 +264,6 @@
     <div class="tabs">
       <button class="tab active" data-tab="master"    onclick="switchTab('master')">📋 All Orders</button>
       <button class="tab"        data-tab="pending"   onclick="switchTab('pending')">⏳ Pending <span class="tab-badge" id="pendingBadge" style="display:none"></span></button>
-      <button class="tab"        data-tab="summary"   onclick="switchTab('summary')">📊 Summary</button>
       <button class="tab"        data-tab="analytics" onclick="switchTab('analytics')">📈 Analytics</button>
     </div>
   </div>
@@ -310,47 +309,30 @@
     </div>
   </div>
 
-  <!-- ── SUMMARY TAB ── -->
-  <div id="tab-summary" style="display:none">
-    <!-- Summary filter bar + period toggle -->
-    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
-      <div class="filter-bar" id="summaryFilters"></div>
-      <div class="group-toggle">
-        <button class="gtbtn active" data-sg="all"   onclick="setSummaryGroup('all')">All Time</button>
-        <button class="gtbtn"        data-sg="today" onclick="setSummaryGroup('today')">Today</button>
-        <button class="gtbtn"        data-sg="week"  onclick="setSummaryGroup('week')">This Week</button>
-        <button class="gtbtn"        data-sg="month" onclick="setSummaryGroup('month')">This Month</button>
-      </div>
-    </div>
-    <div class="summary-grid">
-      <div class="card" style="padding:24px">
-        <div class="card-title" style="margin-bottom:18px">💰 Order Overview</div>
-        <div id="summaryOverview"></div>
-      </div>
-      <div class="card" style="padding:24px">
-        <div class="card-title" style="margin-bottom:18px">💳 By Payment Mode (Pending)</div>
-        <div id="summaryByMode"></div>
-        <div class="card-title" style="margin:24px 0 16px">👤 Top Pending Customers</div>
-        <div id="summaryTopCustomers"></div>
-      </div>
-    </div>
-  </div>
-
   <!-- ── ANALYTICS TAB ── -->
   <div id="tab-analytics" style="display:none">
 
-    <!-- Timing & Volume Metrics -->
-    <div class="stat-grid" id="timingMetrics" style="margin-bottom:18px"></div>
-
-    <!-- Filters & Group Toggle -->
+    <!-- Period selector -->
     <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
-      <div class="filter-bar" id="analyticsFilters"></div>
+      <span style="font-size:12px;font-weight:700;color:var(--slate-400);text-transform:uppercase;letter-spacing:.06em">Period:</span>
       <div class="group-toggle">
+        <button class="gtbtn active" data-ag="all"   onclick="setAnalyticsPeriod('all')">All Time</button>
+        <button class="gtbtn"        data-ag="month" onclick="setAnalyticsPeriod('month')">This Month</button>
+        <button class="gtbtn"        data-ag="week"  onclick="setAnalyticsPeriod('week')">This Week</button>
+        <button class="gtbtn"        data-ag="today" onclick="setAnalyticsPeriod('today')">Today</button>
+      </div>
+      <div class="group-toggle" style="margin-left:auto">
         <button class="gtbtn active" data-group="day"   onclick="setGroup('day')">Daily</button>
         <button class="gtbtn"        data-group="week"  onclick="setGroup('week')">Weekly</button>
         <button class="gtbtn"        data-group="month" onclick="setGroup('month')">Monthly</button>
       </div>
     </div>
+
+    <!-- Overview stat cards (all orders — pending + received) -->
+    <div class="stat-grid" id="analyticsOverview" style="margin-bottom:18px"></div>
+
+    <!-- Timing Metrics -->
+    <div class="stat-grid" id="timingMetrics" style="margin-bottom:18px"></div>
 
     <!-- Row 1: Value + Count charts -->
     <div class="analytics-grid">
@@ -424,17 +406,22 @@
       <div id="receivedBillInfo" style="background:var(--green-50);border:1.5px solid var(--green-100);border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:13px;color:var(--green-800);line-height:1.7"></div>
       <div class="form-grid" style="margin-bottom:0">
         <div class="form-group">
-          <label class="form-label">Received By (Name)</label>
-          <input class="form-control" id="receivedByInput" placeholder="Enter staff name..." />
+          <label class="form-label">Received By <span style="color:var(--red)">*</span></label>
+          <input class="form-control" id="receivedByInput" placeholder="Enter staff name…" required />
         </div>
         <div class="form-group">
-          <label class="form-label">Actual Payment Mode</label>
+          <label class="form-label">Payment Received Date <span style="color:var(--red)">*</span></label>
+          <input class="form-control" id="receivedDateInput" type="date" required />
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Actual Payment Mode <span style="color:var(--red)">*</span></label>
           <select class="form-control" id="receivedModeInput">
             <option value="">-- Select mode --</option>
             ${DELIVERY_MODES.map(m=>`<option value="${m}">${m}</option>`).join("")}
           </select>
         </div>
       </div>
+      <div id="receivedError" style="display:none;color:var(--red);font-size:12px;font-weight:700;margin:8px 0">⚠️ All fields are required to mark as received.</div>
       <div class="modal-footer">
         <button class="btn-cancel" onclick="closeModal('receivedModal')">Cancel</button>
         <button class="btn-save"   onclick="confirmReceived()" id="receiveConfirmBtn">✓ Confirm Received</button>
@@ -486,22 +473,13 @@
           💬 Bill via SMS
         </button>
       </div>
-      <div id="postSaveGroupAlert"></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
-        <button class="post-save-btn" style="background:linear-gradient(135deg,#92400E,#B45309);margin-bottom:0" onclick="sendFollowUpFromModal()">
-          🔔 Follow-up via WhatsApp
-        </button>
-        <button class="post-save-btn" style="background:linear-gradient(135deg,#0F766E,#0D9488);margin-bottom:0" onclick="sendFollowUpSMSFromModal()">
-          💬 Follow-up via SMS
-        </button>
-      </div>
+      <div id="postSaveGroupAlert" style="margin-top:10px"></div>
       <button class="btn-cancel" style="width:100%;padding:11px;text-align:center;margin-top:10px" onclick="closePostSaveModal()">
         Done — Skip for now
       </button>
       <p class="post-save-tip">
-        💡 WhatsApp opens a direct chat with the customer's number pre-filled.<br>
-        SMS opens your default messaging app if WhatsApp is unavailable.<br>
-        On mobile, the bill photo can be shared directly via WhatsApp.
+        💡 WhatsApp button opens the customer's chat directly (no contact selection needed).<br>
+        For Delivery Alert: message is auto-copied to clipboard, then your group opens — just paste &amp; send.
       </p>
     </div>
   </div>
@@ -623,8 +601,35 @@ async function loadData() {
 // ── CRUD ─────────────────────────────────────────────────────
 async function saveEntry() {
   const data = collectForm();
-  if (!data.CustomerName || !data.BillNumber || !data.Amount) {
-    showToast("Customer Name, Bill Number and Amount are required", "error"); return;
+  // Mandatory field validation (except Notes)
+  const mandatoryFields = [
+    { key:"Date",              label:"Order Date" },
+    { key:"BillNumber",        label:"Bill Number" },
+    { key:"CustomerName",      label:"Customer Name" },
+    { key:"Phone",             label:"Phone Number" },
+    { key:"Amount",            label:"Amount" },
+    { key:"ExpectedPaymentMode", label:"Expected Payment Mode" },
+    { key:"TakenBy",           label:"Order Taken By" },
+    { key:"OrderTime",         label:"Order Received Time" },
+    { key:"BilledTime",        label:"Order Billed Time" },
+  ];
+  // For new orders, also check delivery-only fields when type is Home Delivery
+  const isDeliveryOrder = (data.OrderType || "Home Delivery") !== "Pay Later";
+  if (isDeliveryOrder && !editingId) {
+    mandatoryFields.push({ key:"DeliveryPerson", label:"Delivery Person" });
+  }
+  for (const f of mandatoryFields) {
+    if (!data[f.key] || !String(data[f.key]).trim()) {
+      showToast(`⚠️ ${f.label} is required`, "error"); return;
+    }
+  }
+  // Duplicate bill number check (only for new entries)
+  if (!editingId) {
+    const dup = allEntries.find(e => e.BillNumber && e.BillNumber.trim().toLowerCase() === data.BillNumber.trim().toLowerCase());
+    if (dup) {
+      showToast(`⚠️ Bill Number "${data.BillNumber}" already exists for ${dup.CustomerName}. Please use a unique bill number.`, "error");
+      return;
+    }
   }
   const btn = document.getElementById("saveBtn");
   btn.innerHTML = '<span class="spinner"></span>Saving…';
@@ -701,25 +706,35 @@ async function confirmDelete() {
 
 async function confirmReceived() {
   const name = document.getElementById("receivedByInput").value.trim();
+  const pdate= document.getElementById("receivedDateInput").value;
+  const mode = (document.getElementById("receivedModeInput")?.value || "").trim();
+  const errEl= document.getElementById("receivedError");
+
+  // Validate all mandatory
+  if (!name || !pdate || !mode) {
+    errEl.style.display = "block";
+    return;
+  }
+  errEl.style.display = "none";
+
   const btn  = document.getElementById("receiveConfirmBtn");
   btn.innerHTML = '<span class="spinner"></span>';
   btn.disabled = true;
-  const mode = (document.getElementById("receivedModeInput")?.value || "").trim();
-  const data = { ID: markId, Status: "received", ReceivedBy: name, PaymentMode: mode };
+  const data = { ID: markId, Status: "received", ReceivedBy: name, PaymentDate: pdate, PaymentMode: mode };
   const res  = await api("POST", { action:"update", data });
   if (res?.success) {
     const idx = allEntries.findIndex(e => e.ID === markId);
     if (idx !== -1) {
       allEntries[idx].Status      = "received";
       allEntries[idx].ReceivedBy  = name;
-      // Only overwrite if a mode was actually selected
-      if (mode) allEntries[idx].PaymentMode = mode;
+      allEntries[idx].PaymentDate = pdate;
+      allEntries[idx].PaymentMode = mode;
     }
-    showToast(`Payment received ✓${mode ? " via " + mode : ""}`);
+    showToast(`✓ Received by ${name} via ${mode} on ${fmtDate(pdate)}`);
     closeModal("receivedModal");
     renderTablesOnly();
   }
-  btn.innerHTML = "Confirm Received ✓";
+  btn.innerHTML = "✓ Confirm Received";
   btn.disabled = false;
 }
 
@@ -881,8 +896,12 @@ function buildGroupAlertMessage(entry) {
 
 function shareWithCustomer() {
   const e = lastSavedEntry;
-  if (!e) return;
-  openWhatsApp(e.Phone, buildCustomerMessage(e), billPhotoFile, `Bill - ${e.BillNumber}`);
+  if (!e) { showToast("No saved entry found", "error"); return; }
+  const ph = String(e.Phone||"").replace(/\D/g,"");
+  if (ph.length < 10) {
+    showToast("⚠️ No valid phone number — cannot open WhatsApp", "error"); return;
+  }
+  openWhatsApp(String(e.Phone), buildCustomerMessage(e), billPhotoFile, `Bill - ${e.BillNumber}`);
 }
 
 // Core WhatsApp opener — always opens direct chat via wa.me, with optional photo share on mobile
@@ -899,8 +918,9 @@ function openWhatsApp(phone, msg, photoFile, shareTitle) {
     showToast("⚠️ Phone number missing or invalid — cannot open WhatsApp", "error");
     return;
   }
-  // Use api.whatsapp.com/send which opens direct chat without contact picker on more devices
-  const waUrl = `https://api.whatsapp.com/send?phone=${normalised}&text=${encodeURIComponent(msg)}`;
+  // Use api.whatsapp.com/send with type=phone_number — most reliable for direct chat on all devices
+  // This bypasses the contact picker and opens the conversation directly
+  const waUrl = `https://api.whatsapp.com/send/?phone=${normalised}&text=${encodeURIComponent(msg)}&type=phone_number&app_absent=0`;
 
   // If photo attached AND on mobile with Web Share API → share natively (opens WhatsApp share sheet)
   if (photoFile && typeof navigator.share === "function" && typeof navigator.canShare === "function") {
@@ -961,24 +981,23 @@ function sendGroupAlert(id) {
   const e = allEntries.find(x => x.ID === id);
   if (!e) return;
   const msg = buildGroupAlertMessage(e);
+  const link = (typeof DELIVERY_GROUP_LINK !== "undefined" ? DELIVERY_GROUP_LINK : "");
+  const isValidLink = link && !link.includes("YOUR_WHATSAPP") && link.startsWith("https://");
 
-  // Try to open WhatsApp group link — user opens the group then pastes/shares the pre-copied msg
-  const link = typeof DELIVERY_GROUP_LINK !== "undefined" ? DELIVERY_GROUP_LINK : "";
-  const isValidLink = link && !link.includes("YOUR_WHATSAPP");
-
-  // Copy message to clipboard first (works in any case)
-  const copyAndOpen = () => {
-    navigator.clipboard && navigator.clipboard.writeText(msg)
-      .then(() => {
-        showToast("📋 Alert copied to clipboard — paste in delivery group!", "info");
-        if (isValidLink) setTimeout(() => window.open(link, "_blank"), 600);
-      })
-      .catch(() => {
-        if (isValidLink) window.open(link, "_blank");
-        else prompt("Copy this alert to your delivery group:", msg);
-      });
-  };
-  copyAndOpen();
+  if (!isValidLink) {
+    showToast("⚙️ Paste your WhatsApp group invite link into DELIVERY_GROUP_LINK in the config", "error");
+    if (navigator.clipboard) navigator.clipboard.writeText(msg).catch(()=>{});
+    return;
+  }
+  // Copy message then open group — user pastes message in group
+  const openGroup = () => window.open(link, "_blank");
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(msg)
+      .then(() => { showToast("✅ Message copied — WhatsApp group opening…", "info"); setTimeout(openGroup, 300); })
+      .catch(openGroup);
+  } else {
+    openGroup();
+  }
 }
 
 function sendWhatsApp(id) {
@@ -1004,8 +1023,8 @@ function renderAll() {
 // ── TABLE ─────────────────────────────────────────────────────
 function renderTable(tableId, countId, data, pendingOnly) {
   const table  = document.getElementById(tableId);
-  const cols   = ["Type","Date","BillNumber","CustomerName","Phone","Amount","ExpectedPaymentMode","PaymentMode","TakenBy","OrderTime","BilledTime","DeliveryTime","DeliveryPerson","ProcessTime","DelivTime","Status","Actions"];
-  const labels = ["Type","Date","Bill No","Customer","Phone","Amount","Exp. Mode","Actual Mode","Taken By","Order Time","Billed Time","Del. Time","Del. Person","⚡ Process","🚚 Deliver","Status","Actions"];
+  const cols   = ["Type","Date","BillNumber","CustomerName","Phone","Amount","ExpectedPaymentMode","PaymentMode","TakenBy","OrderTime","BilledTime","DeliveryTime","DeliveryPerson","ProcessTime","DelivTime","Status","ReceivedBy","PaymentDate","Actions"];
+  const labels = ["Type","Date","Bill No","Customer","Phone","Amount","Exp. Mode","Actual Mode","Taken By","Order Time","Billed Time","Del. Time","Del. Person","⚡ Process","🚚 Deliver","Status","Rcvd By","Rcvd Date","Actions"];
   table.querySelector("thead").innerHTML = `<tr>${labels.map(h=>`<th>${h}</th>`).join("")}</tr>`;
   if (!data.length) {
     table.querySelector("tbody").innerHTML = `<tr><td colspan="${cols.length}" class="empty"><div class="empty-icon">📭</div><div class="empty-text">No orders found</div></td></tr>`;
@@ -1036,6 +1055,8 @@ function renderTable(tableId, countId, data, pendingOnly) {
       <td>${(()=>{ const t1=parseTimeToHHMM(e.OrderTime),t2=parseTimeToHHMM(e.BilledTime); const d=t1&&t2?timeDiffMinutes(t1,t2):-1; return d>0?`<span style="font-size:11px;color:#7C3AED;font-weight:700">${d}m</span>`:"—"; })()}</td>
       <td>${(()=>{ if(!isDelivery) return "—"; const t1=parseTimeToHHMM(e.BilledTime),t2=parseTimeToHHMM(e.DeliveryTime); const d=t1&&t2?timeDiffMinutes(t1,t2):-1; return d>0?`<span style="font-size:11px;color:#0D9488;font-weight:700">${d}m</span>`:"—"; })()}</td>
       <td><span class="badge-status ${e.Status==="pending"?"badge-pending":"badge-received"}"><span class="dot ${e.Status==="pending"?"dot-pending":"dot-received"}"></span>${e.Status==="pending"?"Pending":"Received"}</span></td>
+      <td>${e.ReceivedBy ? `<span style="font-size:11px;font-weight:700;color:#065F46">${e.ReceivedBy}</span>` : "—"}</td>
+      <td>${e.PaymentDate ? fmtDate(e.PaymentDate) : "—"}</td>
       <td class="td-actions">
         ${e.Status==="pending" ? `
           <button class="act-btn act-btn-receive"  onclick="openReceiveModal('${e.ID}')"  title="Mark Received">✓ Rcvd</button>
@@ -1070,27 +1091,9 @@ function renderPendingStats(pending) {
   `).join("");
 }
 
-let summaryGroup = "all";
-function setSummaryGroup(g) {
-  summaryGroup = g;
-  document.querySelectorAll("[data-sg]").forEach(b => b.classList.toggle("active", b.dataset.sg===g));
-  const pending      = allEntries.filter(e => e.Status === "pending");
-  const totalPending = pending.reduce((s,e) => s + Number(e.Amount||0), 0);
-  renderSummary(allEntries, pending, totalPending);
-}
+// Summary tab removed
 
-function filterByPeriod(data) {
-  const today   = new Date().toISOString().split("T")[0];
-  const thisWeek  = getWeekKey(today);
-  const thisMonth = today.slice(0,7);
-  if (summaryGroup === "today")
-    return data.filter(e => e.Date === today);
-  if (summaryGroup === "week")
-    return data.filter(e => getWeekKey(e.Date) === thisWeek);
-  if (summaryGroup === "month")
-    return data.filter(e => e.Date && e.Date.startsWith(thisMonth));
-  return data; // "all"
-}
+
 
 function renderSummary(all, pending, totalPending) {
   const filtAll     = filterByPeriod(all);
@@ -1139,11 +1142,51 @@ function switchStaffTab(tab) {
   document.getElementById("staffStatsDelivery").style.display   = tab==="delivery" ? "" : "none";
 }
 
+let analyticsPeriod = "all";
+
+function setAnalyticsPeriod(p) {
+  analyticsPeriod = p;
+  document.querySelectorAll("[data-ag]").forEach(b => b.classList.toggle("active", b.dataset.ag===p));
+  renderAnalytics();
+}
+
+function getAnalyticsData() {
+  const today     = new Date().toISOString().split("T")[0];
+  const thisWeek  = getWeekKey(today);
+  const thisMonth = today.slice(0,7);
+  if (analyticsPeriod === "today") return allEntries.filter(e => e.Date === today);
+  if (analyticsPeriod === "week")  return allEntries.filter(e => getWeekKey(e.Date) === thisWeek);
+  if (analyticsPeriod === "month") return allEntries.filter(e => e.Date && e.Date.startsWith(thisMonth));
+  return allEntries.slice(); // "all"
+}
+
+function renderAnalyticsOverview(data) {
+  const pending  = data.filter(e => e.Status === "pending");
+  const received = data.filter(e => e.Status === "received");
+  const pendAmt  = pending.reduce((s,e)=>s+Number(e.Amount||0),0);
+  const rcvdAmt  = received.reduce((s,e)=>s+Number(e.Amount||0),0);
+  const cards = [
+    { label:"Total Orders",    value:data.length,       color:"#1D4ED8", bg:"#EFF6FF", icon:"📦" },
+    { label:"Pending",         value:pending.length,    color:"#F59E0B", bg:"#FFFBEB", icon:"⏳" },
+    { label:"Received",        value:received.length,   color:"#059669", bg:"#ECFDF5", icon:"✅" },
+    { label:"Pending Amount",  value:fmtCur(pendAmt),   color:"#DC2626", bg:"#FEF2F2", icon:"💸" },
+    { label:"Received Amount", value:fmtCur(rcvdAmt),   color:"#10B981", bg:"#F0FDFA", icon:"💰" },
+    { label:"Total Business",  value:fmtCur(pendAmt+rcvdAmt), color:"#7C3AED", bg:"#F5F3FF", icon:"🏆" },
+  ];
+  const el = document.getElementById("analyticsOverview");
+  if (el) el.innerHTML = cards.map(card=>`
+    <div class="stat-card" style="background:${card.bg};border:1.5px solid ${card.color}22">
+      <div style="font-size:20px;margin-bottom:4px">${card.icon}</div>
+      <div class="stat-label" style="color:${card.color}">${card.label}</div>
+      <div class="stat-value">${card.value}</div>
+    </div>`).join("");
+}
+
 function renderAnalytics() {
-  // Analytics uses ALL orders (not just pending)
-  const fdata = allEntries; // Issue #2: use all
+  const fdata = getAnalyticsData();
   const label = groupBy==="day"?"Daily":groupBy==="week"?"Weekly":"Monthly";
 
+  renderAnalyticsOverview(fdata);
   renderTimingMetrics(fdata);
   renderValueChart("allChart", fdata);
   renderCountChart("countChart", fdata);
@@ -1189,10 +1232,10 @@ function renderStaffPerformance(data) {
   const delivMap = {};
   data.forEach(e => {
     if (!e.DeliveryPerson) return;
-    delivMap[e.DeliveryPerson] = delivMap[e.DeliveryPerson] || {total:0, received:0, totalAmt:0, delivTimes:[]};
+    delivMap[e.DeliveryPerson] = delivMap[e.DeliveryPerson] || {total:0, totalAmt:0, delivTimes:[]};
     delivMap[e.DeliveryPerson].total++;
     delivMap[e.DeliveryPerson].totalAmt += Number(e.Amount||0);
-    if (e.Status==="received") delivMap[e.DeliveryPerson].received++;
+
     const t1=parseTimeToHHMM(e.BilledTime), t2=parseTimeToHHMM(e.DeliveryTime);
     if (t1&&t2) { const d=timeDiffMinutes(t1,t2); if(d>0&&d<600) delivMap[e.DeliveryPerson].delivTimes.push(d); }
   });
@@ -1201,14 +1244,11 @@ function renderStaffPerformance(data) {
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px">
     ${Object.entries(delivMap).sort(([,a],[,b])=>b.total-a.total).map(([name,s]) => {
       const avgDel = s.delivTimes.length ? Math.round(s.delivTimes.reduce((a,b)=>a+b,0)/s.delivTimes.length) : null;
-      const rate   = s.total ? Math.round(s.received/s.total*100) : 0;
       return `<div style="background:#F8FAFC;border-radius:12px;padding:16px;border:1.5px solid #E2E8F0">
         <div style="font-weight:800;font-size:14px;margin-bottom:10px">🚚 ${name}</div>
         <div style="font-size:12px;color:#475569;margin-bottom:4px">Deliveries: <strong>${s.total}</strong></div>
-        <div style="font-size:12px;color:#10B981;margin-bottom:4px">Completed: <strong>${s.received}</strong></div>
         <div style="font-size:12px;color:#1D4ED8;margin-bottom:4px">Value: <strong>${fmtCur(s.totalAmt)}</strong></div>
         <div style="font-size:12px;color:#0D9488;margin-bottom:4px">🚚 Avg Delivery: <strong>${avgDel!==null?avgDel+"m":"—"}</strong></div>
-        <div style="font-size:12px;color:#059669">✅ Completion: <strong>${rate}%</strong></div>
       </div>`;
     }).join("") || "<p style='color:#94A3B8;font-size:13px'>No delivery data</p>"}
     </div>`;
@@ -1432,10 +1472,8 @@ function renderTimingChart(elId, data, mode) {
 // Inputs are created once in initFilterBars() called on page load.
 
 function initFilterBars() {
-  initFilterBar("masterFilters",    "master",    false);
-  initFilterBar("pendingFilters",   "pending",   true);
-  initFilterBar("analyticsFilters", "analytics", true);
-  initFilterBar("summaryFilters",   "summary",   false, true);
+  initFilterBar("masterFilters",    "master",  false);
+  initFilterBar("pendingFilters",   "pending", true);
 }
 
 function initFilterBar(elId, key, pendingOnly, noStatus) {
@@ -1522,10 +1560,10 @@ function renderTablesOnly() {
   renderTable("masterTable",  "masterCount",  applyFilter(allEntries, filters.master),  false);
   renderTable("pendingTable", "pendingCount", applyFilter(pending,    filters.pending), true);
   renderPendingStats(pending);
-  renderSummary(allEntries, pending, totalPending);
+  // Summary tab removed — analytics covers all overview data
   if (activeTab === "analytics") renderAnalytics();
   // Update all clear buttons
-  ["master","pending","analytics","summary"].forEach(k => updateClearBtn(k));
+  ["master","pending"].forEach(k => updateClearBtn(k));
 }
 
 function clearFilter(key) {
@@ -1585,6 +1623,8 @@ function openReceiveModal(id) {
   markId = id;
   const e = allEntries.find(x => x.ID === id) || {};
   document.getElementById("receivedByInput").value = "";
+  document.getElementById("receivedDateInput").value = new Date().toISOString().split("T")[0];
+  document.getElementById("receivedError").style.display = "none";
   // Pre-fill bill info
   const info = document.getElementById("receivedBillInfo");
   if (info) info.innerHTML =
@@ -1706,16 +1746,12 @@ function collectForm() {
 // ── TAB ───────────────────────────────────────────────────────
 function switchTab(tab) {
   activeTab = tab;
-  ["master","pending","summary","analytics"].forEach(t => {
+  ["master","pending","analytics"].forEach(t => {
     document.getElementById("tab-"+t).style.display = t===tab ? "" : "none";
-    document.querySelector(`[data-tab="${t}"]`).classList.toggle("active", t===tab);
+    const tabBtn = document.querySelector(`[data-tab="${t}"]`);
+    if (tabBtn) tabBtn.classList.toggle("active", t===tab);
   });
   if (tab==="analytics") renderAnalytics();
-  if (tab==="summary")   {
-    // ensure summary filter bar is initialised (may not be if it was hidden on load)
-    const sf = document.getElementById("summaryFilters");
-    if (sf && !sf.querySelector("input")) initFilterBars();
-  }
 }
 
 function setGroup(g) {
