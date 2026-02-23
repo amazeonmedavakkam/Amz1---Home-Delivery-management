@@ -578,7 +578,7 @@ const APPS_SCRIPT_URL      = "https://script.google.com/macros/s/AKfycbwkupivAAt
 const SHOP_NAME            = "Amaze On";
 // WhatsApp Group invite link for delivery team
 // Set to your WhatsApp group invite link from: Open Group > ... > Invite via link
-const DELIVERY_GROUP_LINK  = "YOUR_WHATSAPP_GROUP_INVITE_LINK";
+const DELIVERY_GROUP_LINK  = "https://chat.whatsapp.com/BDxXjAOvYcE4sm8BeXK9Ce?mode=gi_t";
 // e.g. "https://chat.whatsapp.com/XXXXXXXXXXXXXXXXXXXXXX"
 const COUNTRY_CODE         = "91"; // India
 const DELETE_PASSWORD      = "amaze2024"; // Password required to delete any entry
@@ -2050,7 +2050,7 @@ function renderSettings() {
   const waEl = document.getElementById("settingWaLink");
   const shopEl = document.getElementById("settingShopName");
   const countryEl = document.getElementById("settingCountry");
-  if (waEl) waEl.textContent = (typeof DELIVERY_GROUP_LINK !== "undefined" && DELIVERY_GROUP_LINK !== "YOUR_WHATSAPP_GROUP_INVITE_LINK") ? DELIVERY_GROUP_LINK : "⚠️ Not set yet";
+  if (waEl) waEl.textContent = (typeof DELIVERY_GROUP_LINK !== "undefined" && DELIVERY_GROUP_LINK !== "https://chat.whatsapp.com/BDxXjAOvYcE4sm8BeXK9Ce?mode=gi_t") ? DELIVERY_GROUP_LINK : "⚠️ Not set yet";
   if (shopEl) shopEl.textContent = typeof SHOP_NAME !== "undefined" ? SHOP_NAME : "—";
   if (countryEl) countryEl.textContent = typeof COUNTRY_CODE !== "undefined" ? "+"+COUNTRY_CODE : "—";
 }
