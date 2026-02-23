@@ -864,15 +864,21 @@ function openPostSaveModal() {
   const e = lastSavedEntry;
   if (!e) return;
 
-  const custPending = allEntries.filter(x => x.CustomerName === e.CustomerName && x.Status === "pending");
-  const totalDue    = custPending.reduce((s,x) => s + Number(x.Amount||0), 0);
   const isDelivery  = (e.OrderType || "Home Delivery") !== "Pay Later";
+  // Outstanding bills check — by phone number
+  const normPhone   = (e.Phone||"").replace(/\D/g,"").slice(-10);
+  const custPending = allEntries.filter(x => {
+    const xp = (x.Phone||"").replace(/\D/g,"").slice(-10);
+    return normPhone && xp === normPhone && x.Status === "pending";
+  });
+  const totalDue = custPending.reduce((s,x) => s + Number(x.Amount||0), 0);
 
   document.getElementById("postSaveInfo").innerHTML =
     `${isDelivery?"🚚":"🏪"} <strong>${e.OrderType||"Home Delivery"}</strong> &nbsp;|&nbsp; <strong>📦 ${e.BillNumber}</strong><br>` +
     `👤 <strong>${e.CustomerName}</strong> &nbsp;|&nbsp; 📞 ${e.Phone || "—"}<br>` +
-    `💰 ${fmtCur(e.Amount)} &nbsp;|&nbsp; 💳 Expected: <strong>${e.ExpectedPaymentMode || "—"}</strong>` +
-    (custPending.length > 1 ? `<br><span style="color:#DC2626;font-weight:700">⚠️ ${custPending.length} pending bills total: ${fmtCur(totalDue)}</span>` : "");
+    `💰 <strong>${fmtCur(e.Amount)}</strong> &nbsp;|&nbsp; 💳 Expected: <strong>${e.ExpectedPaymentMode || "—"}</strong><br>` +
+    `<span style="font-size:11px;color:#059669;font-weight:600">📱 WA/SMS bill buttons below will send only THIS order's details</span>` +
+    (custPending.length > 1 ? `<br><span style="color:#DC2626;font-weight:700;font-size:12px">⚠️ This customer has ${custPending.length} pending bills totalling ${fmtCur(totalDue)} — use WA F/U to send all</span>` : "");
 
   const photoNote = document.getElementById("postSavePhotoNote");
   photoNote.style.display = billPhotoFile ? "block" : "none";
@@ -1019,7 +1025,11 @@ function sendFollowUpSMS(id) {
 }
 
 function buildGroupAlertMessage(entry) {
-  const custPending = allEntries.filter(x => x.CustomerName === entry.CustomerName && x.Status === "pending");
+  // Match outstanding bills by phone number (not name) for accuracy
+  const normPhone   = (entry.Phone||"").replace(/\D/g,"").slice(-10);
+  const custPending = normPhone
+    ? allEntries.filter(x => (x.Phone||"").replace(/\D/g,"").slice(-10) === normPhone && x.Status === "pending")
+    : allEntries.filter(x => x.CustomerName === entry.CustomerName && x.Status === "pending");
   const totalDue    = custPending.reduce((s,x) => s + Number(x.Amount||0), 0);
 
   const lines = [
