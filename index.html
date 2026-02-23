@@ -109,6 +109,7 @@
   .badge-expected { background: var(--orange-bg); color: var(--orange); padding: 2px 7px; border-radius: 12px; font-size: 10px; font-weight: 700; white-space: nowrap; }
   .badge-delivery  { background: #EFF6FF; color: #1D4ED8; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 700; white-space: nowrap; }
   .badge-paylater  { background: #FEF3C7; color: #92400E; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 700; white-space: nowrap; }
+  .badge-prepaid   { background: #ECFDF5; color: #065F46; padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 700; white-space: nowrap; }
   .act-btn-sms     { background: #F0F9FF; color: #0284C7; }
   .order-type-toggle { display:flex; gap:0; border-radius:10px; overflow:hidden; border:2px solid var(--slate-200); }
   .ott-btn { flex:1; padding:10px 8px; border:none; font-size:13px; font-weight:700; cursor:pointer; transition: all .2s; background: var(--slate-50); color: var(--slate-600); }
@@ -257,13 +258,14 @@
             <div class="hstat-value" id="headerPending">₹0</div>
           </div>
         </div>
-        <button class="btn-sync" onclick="loadData()" id="syncBtn">🔄 Sync</button>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:2px"><button class="btn-sync" onclick="loadData()" id="syncBtn">🔄 Sync</button><span id="lastSyncLabel" style="font-size:9px;color:#86EFAC;opacity:.7;font-weight:500"></span></div>
         <button class="btn-add" onclick="openAddModal()">+ New Order</button>
       </div>
     </div>
     <div class="tabs">
       <button class="tab active" data-tab="master"    onclick="switchTab('master')">📋 All Orders</button>
-      <button class="tab"        data-tab="pending"   onclick="switchTab('pending')">⏳ Pending <span class="tab-badge" id="pendingBadge" style="display:none"></span></button>
+      <button class="tab"        data-tab="pending"   onclick="switchTab('pending')">💳 Pending Payments <span class="tab-badge" id="pendingBadge" style="display:none"></span></button>
+      <button class="tab"        data-tab="deliveries" onclick="switchTab('deliveries')">🚚 Pending Deliveries <span class="tab-badge" id="deliveriesBadge" style="display:none"></span></button>
       <button class="tab"        data-tab="analytics" onclick="switchTab('analytics')">📈 Analytics</button>
       <button class="tab"        data-tab="settings"  onclick="switchTab('settings')">⚙️ Settings</button>
     </div>
@@ -303,10 +305,22 @@
     <div class="stat-grid" id="pendingStats"></div>
     <div class="card">
       <div class="card-header">
-        <div class="card-title">Pending Orders <span id="pendingCount"></span></div>
+        <div class="card-title">Pending Payments <span id="pendingCount"></span></div>
         <div class="filter-bar" id="pendingFilters"></div>
       </div>
       <div class="table-wrap"><table id="pendingTable"><thead></thead><tbody></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- ── PENDING DELIVERIES TAB ── -->
+  <div id="tab-deliveries" style="display:none">
+    <div class="stat-grid" id="deliveriesStats" style="margin-bottom:18px"></div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Pending Deliveries <span id="deliveriesCount"></span></div>
+        <div class="filter-bar" id="deliveriesFilters"></div>
+      </div>
+      <div class="table-wrap"><table id="deliveriesTable"><thead></thead><tbody></tbody></table></div>
     </div>
   </div>
 
@@ -526,6 +540,35 @@
   </div>
 </div>
 
+
+<!-- 🚚 Mark Delivered Modal -->
+<div class="modal-overlay" id="deliveryModal" style="display:none" onclick="closeModalOnBg(event,'deliveryModal')">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-head">
+      <div class="modal-title">🚚 Mark as Delivered</div>
+      <button class="modal-close" onclick="closeModal('deliveryModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="deliveryBillInfo" style="background:var(--green-50);border:1.5px solid var(--green-100);border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:13px;color:var(--green-800);line-height:1.7"></div>
+      <div class="form-grid" style="margin-bottom:0">
+        <div class="form-group">
+          <label class="form-label">Delivery Person <span style="color:var(--red)">*</span></label>
+          <input class="form-control" id="deliveryPersonInput" placeholder="Enter delivery person name…" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Delivery Time <span style="color:var(--red)">*</span></label>
+          <input class="form-control" id="deliveryTimeInput" type="time" />
+        </div>
+      </div>
+      <div id="deliveryError" style="display:none;color:var(--red);font-size:12px;font-weight:700;margin:8px 0">⚠️ Both delivery person and delivery time are required.</div>
+      <div class="modal-footer">
+        <button class="btn-cancel" onclick="closeModal('deliveryModal')">Cancel</button>
+        <button class="btn-save" onclick="confirmDelivered()" id="deliveryConfirmBtn">✓ Mark Delivered</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ══ SCRIPT ══ -->
 <script>
 // ╔══════════════════════════════════════════════════════════╗
@@ -554,6 +597,7 @@ const FORM_FIELDS = [
   { key:"Phone",             label:"Phone Number",         type:"tel",      half:true },
   { key:"Amount",            label:"Amount (₹)",           type:"number",   half:true },
   { key:"ExpectedPaymentMode", label:"Expected Payment Mode (by Customer)", type:"select", half:true, options: DELIVERY_MODES },
+  { key:"Prepaid",          label:"Already Paid (Prepaid Order)",      type:"prepaid", half:false, addOnly:true },
   // ── Timing ──
   { key:"_s2",               label:"⏱ Timing",             type:"section" },
   { key:"TakenBy",           label:"Order Taken By",       type:"text",     half:true },
@@ -573,15 +617,19 @@ const FORM_FIELDS = [
   { key:"Notes",             label:"Notes",                type:"textarea", half:false },
 ];
 
-let allEntries    = [];
-let editingId     = null;
-let markId        = null;
-let lastSavedEntry = null;
-let billPhotoFile = null;
+let allEntries      = [];
+let editingId       = null;
+let markId          = null;
+let markDeliveryId  = null;
+let lastSavedEntry  = null;
+let billPhotoFile   = null;
 let pendingDeleteId = null;
-let activeTab     = "master";
-let groupBy       = "day";
-let filters       = { master:{}, pending:{}, analytics:{} };
+let activeTab       = "master";
+let groupBy         = "day";
+let filters         = { master:{}, pending:{}, deliveries:{}, analytics:{} };
+let lastSyncTime    = null;
+let autoSyncTimer   = null;
+const AUTO_SYNC_MS  = 2 * 60 * 1000; // 2 minutes
 
 // ── API ──────────────────────────────────────────────────────
 // Retry with exponential backoff to handle concurrent device access safely
@@ -623,20 +671,47 @@ async function api(method, body, retries = 4) {
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-async function loadData() {
-  const syncBtn = document.getElementById("syncBtn");
-  syncBtn.innerHTML = '<span class="spinner"></span>Syncing…';
-  syncBtn.disabled = true;
+async function loadData(silent = false) {
+  if (!silent) {
+    const syncBtn = document.getElementById("syncBtn");
+    syncBtn.innerHTML = '<span class="spinner"></span>Syncing…';
+    syncBtn.disabled = true;
+  }
   const data = await api("GET");
   if (data && data.entries) {
     allEntries = data.entries;
-    showToast("Synced " + allEntries.length + " orders ✓");
-  } else if (!data) {
+    lastSyncTime = new Date();
+    updateSyncLabel();
+    if (!silent) showToast("Synced " + allEntries.length + " orders ✓");
+  } else if (!data && !silent) {
     showToast("⚠️ Could not reach Google Sheet. Check Apps Script deployment.", "error");
   }
-  syncBtn.innerHTML = "🔄 Sync";
-  syncBtn.disabled = false;
+  if (!silent) {
+    const syncBtn = document.getElementById("syncBtn");
+    syncBtn.innerHTML = "🔄 Sync";
+    syncBtn.disabled = false;
+  }
   renderAll();
+}
+
+function updateSyncLabel() {
+  const el = document.getElementById("lastSyncLabel");
+  if (!el || !lastSyncTime) return;
+  const s = Math.round((Date.now() - lastSyncTime) / 1000);
+  el.textContent = s < 60 ? "synced just now" : `synced ${Math.round(s/60)}m ago`;
+}
+
+function startAutoSync() {
+  if (autoSyncTimer) clearInterval(autoSyncTimer);
+  autoSyncTimer = setInterval(async () => {
+    const anyModalOpen = [...document.querySelectorAll(".modal-overlay")].some(m => m.style.display === "flex");
+    if (anyModalOpen) return; // don't interrupt user
+    const isDemo = APPS_SCRIPT_URL === "YOUR_APPS_SCRIPT_WEB_APP_URL";
+    if (isDemo) return;
+    await loadData(true); // silent
+  }, AUTO_SYNC_MS);
+  // Tick the label every 30s so it stays fresh
+  setInterval(updateSyncLabel, 30000);
 }
 
 // ── CRUD ─────────────────────────────────────────────────────
@@ -654,12 +729,8 @@ async function saveEntry() {
     { key:"OrderTime",         label:"Order Received Time" },
     { key:"BilledTime",        label:"Order Billed Time" },
   ];
-  // For new orders, also check delivery-only fields when type is Home Delivery
+  // Delivery person & time are NOT mandatory on new orders (filled later via Pending Deliveries tab)
   const isDeliveryOrder = (data.OrderType || "Home Delivery") !== "Pay Later";
-  if (isDeliveryOrder && !editingId) {
-    mandatoryFields.push({ key:"DeliveryTime",   label:"Delivery Time" });
-    mandatoryFields.push({ key:"DeliveryPerson", label:"Delivery Person" });
-  }
   for (const f of mandatoryFields) {
     if (!data[f.key] || !String(data[f.key]).trim()) {
       showToast(`⚠️ ${f.label} is required`, "error"); return;
@@ -689,8 +760,16 @@ async function saveEntry() {
     }
     btn.innerHTML = "Save Changes";
   } else {
-    data.Status = "pending";
-    data.PaymentMode = data.PaymentMode || data.ExpectedPaymentMode || "";
+    const isPrepaid = data.Prepaid === "true" || data.Prepaid === true;
+    data.Status = isPrepaid ? "received" : "pending";
+    if (isPrepaid) {
+      data.PaymentMode  = data.ExpectedPaymentMode || "";
+      data.ReceivedBy   = data.TakenBy || "Prepaid";
+      data.PaymentDate  = data.Date;
+    } else {
+      data.PaymentMode = data.PaymentMode || data.ExpectedPaymentMode || "";
+    }
+    delete data.Prepaid; // don't save UI field to sheet
     let newId, newEntry;
 
     const res = await api("POST", { action:"add", data });
@@ -819,39 +898,25 @@ function closePostSaveModal() {
 
 // ── WHATSAPP ─────────────────────────────────────────────────
 function buildCustomerMessage(entry) {
-  const custPending = allEntries.filter(x => x.CustomerName === entry.CustomerName && x.Status === "pending");
-  const totalDue    = custPending.reduce((s,x) => s + Number(x.Amount||0), 0);
-
+  // Single order bill notification — shows only THIS order's details
   const isDelivery = (entry.OrderType || "Home Delivery") !== "Pay Later";
   const lines = [
-    isDelivery ? `🚚 *Bill from ${SHOP_NAME}*` : `🏪 *Payment Pending — ${SHOP_NAME}*`, ``,
-    `Dear ${entry.CustomerName},`,
-    isDelivery ? `` : `Thank you for visiting us! Your payment is pending.`,
-  ];
-
-  if (custPending.length > 1) {
-    lines.push(`You have ${custPending.length} outstanding bills:`, ``);
-    custPending.forEach((b,i) => lines.push(`  ${i+1}. Bill No: *${b.BillNumber}* | ${fmtDate(b.Date)} | *${fmtCur(b.Amount)}*`));
-    lines.push(``, `💰 *Total Outstanding: ${fmtCur(totalDue)}*`);
-  } else {
-    lines.push(
-      `Please find your bill details below:`, ``,
-      `📄 Bill No: *${entry.BillNumber}*`,
-      `📅 Date: ${fmtDate(entry.Date)}`,
-      `💰 Amount Due: *${fmtCur(entry.Amount)}*`,
-    );
-  }
-
-  lines.push(
+    isDelivery ? `🚚 *Bill from ${SHOP_NAME}*` : `🏪 *Bill from ${SHOP_NAME}*`,
     ``,
+    `Dear *${entry.CustomerName}*,`,
+    ``,
+    `Please find your bill details below:`,
+    ``,
+    `📄 Bill No: *${entry.BillNumber}*`,
+    `📅 Date: ${fmtDate(entry.Date)}`,
+    `💰 Amount Due: *${fmtCur(entry.Amount)}*`,
     `💳 Payment Mode: *${entry.ExpectedPaymentMode || entry.PaymentMode || "—"}*`,
     ``,
-    `📸 *Kindly share the screenshot of your payment transaction after making the payment so that we can update our records and mark your account as closed.*`,
+    `📸 Kindly make the payment and share the *screenshot of the transaction* so we can update your account.`,
     ``,
-    `Kindly make the payment at your earliest convenience.`,
     `Thank you for your business! 🙏`,
     `— *${SHOP_NAME}*`,
-  );
+  ];
   return lines.join("\n");
 }
 
@@ -893,6 +958,46 @@ function buildFollowUpMessage(customerName, phone) {
     `— *${SHOP_NAME}*`,
   );
   return lines.filter(l => l !== undefined).join("\n");
+}
+
+
+// ── PENDING DELIVERIES ────────────────────────────────────────
+function openDeliveryModal(id) {
+  markDeliveryId = id;
+  const e = allEntries.find(x => x.ID === id) || {};
+  document.getElementById("deliveryPersonInput").value = e.DeliveryPerson || "";
+  document.getElementById("deliveryTimeInput").value   = new Date().toTimeString().slice(0,5);
+  document.getElementById("deliveryError").style.display = "none";
+  const info = document.getElementById("deliveryBillInfo");
+  if (info) info.innerHTML =
+    `<strong>📦 ${e.BillNumber||"—"}</strong> — ${e.CustomerName||"—"}<br>` +
+    `💰 Amount: <strong>${fmtCur(e.Amount)}</strong> &nbsp;|&nbsp; ` +
+    `📅 Date: ${fmtDate(e.Date)}` +
+    (e.TakenBy ? `<br>🏪 Taken By: ${e.TakenBy}` : "");
+  document.getElementById("deliveryModal").style.display = "flex";
+  setTimeout(() => document.getElementById("deliveryPersonInput").focus(), 100);
+}
+
+async function confirmDelivered() {
+  const person = document.getElementById("deliveryPersonInput").value.trim();
+  const time   = document.getElementById("deliveryTimeInput").value;
+  const errEl  = document.getElementById("deliveryError");
+  if (!person || !time) { errEl.style.display = "block"; return; }
+  errEl.style.display = "none";
+  const btn = document.getElementById("deliveryConfirmBtn");
+  btn.innerHTML = '<span class="spinner"></span>';
+  btn.disabled = true;
+  const data = { ID: markDeliveryId, DeliveryPerson: person, DeliveryTime: time };
+  const res = await api("POST", { action:"update", data });
+  if (res?.success) {
+    const idx = allEntries.findIndex(e => e.ID === markDeliveryId);
+    if (idx !== -1) { allEntries[idx].DeliveryPerson = person; allEntries[idx].DeliveryTime = time; }
+    showToast(`✓ Delivered by ${person} at ${fmtTime(time)}`);
+    closeModal("deliveryModal");
+    renderTablesOnly();
+  }
+  btn.innerHTML = "✓ Mark Delivered";
+  btn.disabled = false;
 }
 
 function sendFollowUp(id) {
@@ -1474,6 +1579,7 @@ function drawBarChart(containerId, rows, series, opts={}) {
   const barW = totalBarW/series.length;
   const groupPad = (groupW-totalBarW)/2;
 
+  const MONTH_ABBR = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   let bars="";
   rows.forEach(([k,v], gi) => {
     const groupX = PL + gi*groupW;
@@ -1483,14 +1589,22 @@ function drawBarChart(containerId, rows, series, opts={}) {
       const x = groupX + groupPad + si*barW;
       const y = PT+cH-barH;
       const lbl = opts.yFmt ? opts.yFmt(val) : Math.round(val);
+      // Show label always (not just on hover) when bar is tall enough, else show on hover
+      const alwaysShow = barH > 18;
       bars+=`<g class="bar-grp">
         <rect x="${x+1}" y="${y}" width="${barW-2}" height="${barH}" rx="3" fill="${s.color}" opacity="0.88"/>
-        <text x="${x+barW/2}" y="${y-4}" text-anchor="middle" font-size="8" fill="${s.color}" font-weight="700" class="bar-lbl">${lbl}</text>
+        <text x="${x+barW/2}" y="${y-4}" text-anchor="middle" font-size="8" fill="${s.color}" font-weight="700" class="bar-lbl${alwaysShow?" bar-lbl-show":""}">${lbl}</text>
       </g>`;
     });
+    // Clean date display: YYYY-MM-DD → DD/MM | YYYY-MM → Jan | YYYY-Www → Www
     let dispK = k||"";
-    if(dispK.length===10) dispK = dispK.slice(5);
-    else if(dispK.length===7) dispK = dispK.slice(5);
+    if (dispK.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      const p = dispK.split("-"); dispK = `${p[2]}/${p[1]}`;
+    } else if (dispK.match(/^\d{4}-W\d{2}$/)) {
+      dispK = dispK.slice(5); // W03
+    } else if (dispK.match(/^\d{4}-\d{2}$/)) {
+      const m = parseInt(dispK.slice(5),10); dispK = MONTH_ABBR[m-1]||dispK.slice(5);
+    }
     bars+=`<text x="${groupX+groupW/2}" y="${PT+cH+13}" text-anchor="middle" font-size="9" fill="#94A3B8">${dispK}</text>`;
   });
 
@@ -1509,6 +1623,7 @@ function drawBarChart(containerId, rows, series, opts={}) {
 
   document.getElementById(containerId).innerHTML=`<style>
     .bar-lbl{opacity:0;transition:opacity .12s}
+    .bar-lbl-show{opacity:1}
     .bar-grp:hover .bar-lbl{opacity:1}
     .bar-grp rect{transition:opacity .12s}
     .bar-grp:hover rect{opacity:1!important}
@@ -1587,8 +1702,9 @@ function renderTimingChart(elId, data, mode) {
 // Inputs are created once in initFilterBars() called on page load.
 
 function initFilterBars() {
-  initFilterBar("masterFilters",    "master",  false);
-  initFilterBar("pendingFilters",   "pending", true);
+  initFilterBar("masterFilters",     "master",     false);
+  initFilterBar("pendingFilters",    "pending",    true);
+  initFilterBar("deliveriesFilters", "deliveries", true, true);
 }
 
 function initFilterBar(elId, key, pendingOnly, noStatus) {
@@ -1665,20 +1781,73 @@ function updateClearBtn(key) {
 function renderTablesOnly() {
   const pending      = allEntries.filter(e => e.Status === "pending");
   const totalPending = pending.reduce((s,e) => s + Number(e.Amount||0), 0);
+  // Pending deliveries: Home Delivery orders with no DeliveryTime yet
+  const pendDels = allEntries.filter(e => (e.OrderType||"Home Delivery") !== "Pay Later" && !e.DeliveryTime);
 
   document.getElementById("headerActive").textContent  = pending.length;
   document.getElementById("headerPending").textContent = fmtCur(totalPending);
+
   const badge = document.getElementById("pendingBadge");
   if (pending.length) { badge.textContent = pending.length; badge.style.display = "inline"; }
   else badge.style.display = "none";
 
+  const delBadge = document.getElementById("deliveriesBadge");
+  if (pendDels.length) { delBadge.textContent = pendDels.length; delBadge.style.display = "inline"; }
+  else delBadge.style.display = "none";
+
   renderTable("masterTable",  "masterCount",  applyFilter(allEntries, filters.master),  false);
   renderTable("pendingTable", "pendingCount", applyFilter(pending,    filters.pending), true);
   renderPendingStats(pending);
-  // Summary tab removed — analytics covers all overview data
+  renderDeliveriesTab(pendDels);
   if (activeTab === "analytics") renderAnalytics();
-  // Update all clear buttons
-  ["master","pending"].forEach(k => updateClearBtn(k));
+  ["master","pending","deliveries"].forEach(k => updateClearBtn(k));
+}
+
+function renderDeliveriesTab(pendDels) {
+  // Stats bar
+  const statsEl = document.getElementById("deliveriesStats");
+  if (statsEl) {
+    const today = new Date().toISOString().split("T")[0];
+    const todayCnt = pendDels.filter(e => e.Date === today).length;
+    const totalAmt  = pendDels.reduce((s,e) => s+Number(e.Amount||0), 0);
+    statsEl.innerHTML = [
+      { label:"Pending Deliveries", value: pendDels.length,  color:"#1D4ED8", bg:"#EFF6FF" },
+      { label:"Due Today",          value: todayCnt,         color:"#F59E0B", bg:"#FFFBEB" },
+      { label:"Total Order Value",  value: fmtCur(totalAmt), color:"#7C3AED", bg:"#F5F3FF" },
+    ].map(c=>`<div class="stat-card" style="background:${c.bg};border:1.5px solid ${c.color}22">
+      <div class="stat-label" style="color:${c.color}">${c.label}</div>
+      <div class="stat-value">${c.value}</div></div>`).join("");
+  }
+
+  // Table
+  const table = document.getElementById("deliveriesTable");
+  if (!table) return;
+  const cols   = ["Date","BillNumber","CustomerName","Phone","Amount","ExpectedPaymentMode","TakenBy","OrderTime","BilledTime","Actions"];
+  const labels = ["Date","Bill No","Customer","Phone","Amount","Exp. Mode","Taken By","Order Time","Billed Time","Actions"];
+  table.querySelector("thead").innerHTML = `<tr>${labels.map(h=>`<th>${h}</th>`).join("")}</tr>`;
+  const filtered = applyFilter(pendDels, filters.deliveries);
+  if (!filtered.length) {
+    table.querySelector("tbody").innerHTML = `<tr><td colspan="${cols.length}" class="empty"><div class="empty-icon">🚚</div><div class="empty-text">No pending deliveries — all orders delivered!</div></td></tr>`;
+    document.getElementById("deliveriesCount").textContent = "(0)";
+    return;
+  }
+  document.getElementById("deliveriesCount").textContent = `(${filtered.length})`;
+  table.querySelector("tbody").innerHTML = filtered.map(e => `
+    <tr>
+      <td>${fmtDate(e.Date)}</td>
+      <td class="td-bill">${e.BillNumber||"—"}</td>
+      <td class="td-name">${e.CustomerName||"—"}</td>
+      <td>${e.Phone||"—"}</td>
+      <td class="td-amount">${fmtCur(e.Amount)}</td>
+      <td><span class="badge-expected">${e.ExpectedPaymentMode||"—"}</span></td>
+      <td>${e.TakenBy||"—"}</td>
+      <td>${fmtTime(e.OrderTime)}</td>
+      <td>${fmtTime(e.BilledTime)}</td>
+      <td class="td-actions">
+        <button class="act-btn" style="background:#DCFCE7;color:#16A34A" onclick="openDeliveryModal('${e.ID}')" title="Mark Delivered">🚚 Mark Delivered</button>
+        <button class="act-btn act-btn-edit" onclick="openEditModal('${e.ID}')" title="Edit">✏️</button>
+      </td>
+    </tr>`).join("");
 }
 
 function clearFilter(key) {
@@ -1792,6 +1961,11 @@ function renderForm(data, isEdit) {
         inp = `<select class="form-control" id="ff_${f.key}">
           ${(f.options||[]).map(o=>`<option value="${o}" ${(data[f.key]||"")=== o?"selected":""}>${o}</option>`).join("")}
         </select>`;
+      } else if (f.type === "prepaid") {
+        inp = `<label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 12px;background:var(--green-50);border:1.5px solid var(--green-100);border-radius:8px">
+          <input type="checkbox" id="ff_${f.key}" style="width:18px;height:18px;cursor:pointer" />
+          <span style="font-size:13px;font-weight:600;color:var(--green-800)">✅ This order is already paid — mark as received immediately</span>
+        </label>`;
       } else if (f.type === "textarea") {
         inp = `<textarea class="form-control" id="ff_${f.key}" rows="2">${data[f.key]||""}</textarea>`;
       } else if (f.type === "file") {
@@ -1853,7 +2027,9 @@ function collectForm() {
   const out = {};
   FORM_FIELDS.filter(f => f.type !== "section" && f.type !== "file").forEach(f => {
     const el = document.getElementById("ff_" + f.key);
-    if (el) out[f.key] = el.value;
+    if (!el) return;
+    if (f.type === "prepaid") out[f.key] = el.checked ? "true" : "false";
+    else out[f.key] = el.value;
   });
   return out;
 }
@@ -1861,7 +2037,7 @@ function collectForm() {
 // ── TAB ───────────────────────────────────────────────────────
 function switchTab(tab) {
   activeTab = tab;
-  ["master","pending","analytics","settings"].forEach(t => {
+  ["master","pending","deliveries","analytics","settings"].forEach(t => {
     document.getElementById("tab-"+t).style.display = t===tab ? "" : "none";
     const tabBtn = document.querySelector(`[data-tab="${t}"]`);
     if (tabBtn) tabBtn.classList.toggle("active", t===tab);
@@ -2002,6 +2178,7 @@ window.onload = () => {
   allEntries = getSampleData();
   initFilterBars(); // creates persistent inputs — must run before renderAll
   renderAll();
+  startAutoSync(); // background sync every 2 min (won't fire in demo mode)
   if (APPS_SCRIPT_URL !== "YOUR_APPS_SCRIPT_WEB_APP_URL") loadData();
 };
 </script>
