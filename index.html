@@ -67,8 +67,9 @@
   .btn-sync:hover { background: rgba(255,255,255,.2); }
 
   /* ── Tabs ── */
-  .tabs { display: flex; gap: 4px; margin-top: 14px; }
-  .tab { padding: 10px 18px; border: none; border-radius: 8px 8px 0 0; font-size: 13px; font-weight: 600; background: transparent; color: rgba(255,255,255,.65); transition: all .2s; position: relative; }
+  .tabs { display: flex; gap: 4px; margin-top: 14px; overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding-bottom: 0; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { padding: 10px 18px; border: none; border-radius: 8px 8px 0 0; font-size: 13px; font-weight: 600; background: transparent; color: rgba(255,255,255,.65); transition: all .2s; position: relative; white-space: nowrap; flex-shrink: 0; }
   .tab.active { background: #fff; color: var(--green-800); }
   .tab:hover:not(.active) { color: #fff; background: rgba(255,255,255,.12); }
   .tab-badge { position: absolute; top: 6px; right: 6px; background: var(--amber); color: #fff; font-size: 9px; font-weight: 800; padding: 1px 5px; border-radius: 10px; }
@@ -95,10 +96,10 @@
   .btn-clear { padding: 7px 12px; border-radius: 8px; border: 1.5px solid #FCA5A5; background: var(--red-bg); font-size: 12px; font-weight: 600; color: var(--red); }
 
   /* ── Table ── */
-  .table-wrap { overflow-x: auto; }
+  .table-wrap { overflow-x: auto; overflow-y: auto; max-height: calc(100vh - 240px); }
   table { width: 100%; border-collapse: collapse; min-width: 1200px; }
   thead tr { background: var(--slate-50); }
-  th { padding: 10px 11px; text-align: left; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--slate-400); border-bottom: 1px solid var(--slate-100); white-space: nowrap; }
+  th { padding: 10px 11px; text-align: left; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--slate-400); border-bottom: 1px solid var(--slate-100); white-space: nowrap; position: sticky; top: 0; background: var(--slate-50); z-index: 5; box-shadow: 0 1px 0 var(--slate-200); }
   td { padding: 10px 11px; font-size: 12px; color: var(--slate-800); border-bottom: 1px solid var(--slate-100); vertical-align: middle; }
   tbody tr:hover { background: var(--green-50); }
   .td-bill { font-weight: 700; color: var(--blue); }
@@ -528,12 +529,12 @@
         </button>
       </div>
       <div id="postSaveGroupAlert" style="margin-top:10px"></div>
-      <!-- UPI QR Code section — shown only for Paytm/Phonepe -->
+      <!-- UPI QR shown only for Paytm/Phonepe -->
       <div id="postSaveQR" style="display:none;margin-top:14px;background:#F0FDF4;border:1.5px solid #86EFAC;border-radius:12px;padding:14px 16px;text-align:center">
-        <div style="font-size:12px;font-weight:700;color:#166534;margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em">📲 UPI QR Code — Share with Customer</div>
-        <img id="postSaveQRImg" src="" alt="UPI QR Code"
-          style="max-width:200px;width:100%;border-radius:10px;border:2px solid #86EFAC;display:block;margin:0 auto 10px" />
-        <div style="font-size:11px;color:#166534;line-height:1.5">Tap the WhatsApp button above — the QR link is included in the message.<br>Or screenshot this QR and send separately.</div>
+        <div style="font-size:12px;font-weight:700;color:#166534;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em">📲 UPI QR — Share with Customer</div>
+        <img id="postSaveQRImg" src="" alt="UPI QR Code" crossorigin="anonymous"
+          style="max-width:180px;width:100%;border-radius:10px;border:2px solid #86EFAC;display:block;margin:0 auto 8px" />
+        <div style="font-size:11px;color:#166534;line-height:1.5">The QR image is auto-included when you tap <strong>📱 Bill via WhatsApp</strong> below.<br>Or screenshot this QR and send separately.</div>
       </div>
       <button class="btn-cancel" style="width:100%;padding:11px;text-align:center;margin-top:10px" onclick="closePostSaveModal()">
         Done — Skip for now
@@ -591,12 +592,12 @@ const DELETE_PASSWORD      = "amaze2024"; // Password required to delete any ent
 // ────────────────────────────────────────────────────────────
 
 const DELIVERY_MODES = ["Paytm", "Cash", "Phonepe", "Razorpay", "Card", "Sodexo"];
-// UPI payment modes that require QR code in WhatsApp messages
+// UPI payment modes that get QR code shared with customer
 const UPI_MODES = ["Paytm", "Phonepe"];
-// QR code image URL (Google Drive direct view)
-const UPI_QR_URL = "https://drive.google.com/uc?export=view&id=19s8xQSstqWABr__bamum7RsAhwI-_xT5";
-// Shareable QR link for WhatsApp message text
-const UPI_QR_SHARE_LINK = "https://drive.google.com/file/d/19s8xQSstqWABr__bamum7RsAhwI-_xT5/view";
+// Google Drive file ID for your UPI QR code image
+const UPI_QR_DRIVE_ID   = "19s8xQSstqWABr__bamum7RsAhwI-_xT5";
+const UPI_QR_IMG_URL    = `https://drive.google.com/uc?export=view&id=${UPI_QR_DRIVE_ID}`;
+const UPI_QR_SHARE_LINK = `https://drive.google.com/file/d/${UPI_QR_DRIVE_ID}/view`;
 
 const FORM_FIELDS = [
   // ── Order Type (rendered specially by renderForm) ──
@@ -622,6 +623,7 @@ const FORM_FIELDS = [
   // ── Edit-only ──
   { key:"Status",            label:"Status",               type:"select",   half:true, options:["pending","received"], editOnly:true },
   { key:"ReceivedBy",        label:"Received By",          type:"text",     half:true, editOnly:true },
+  { key:"PaymentDate",       label:"Payment Received Date", type:"date",    half:true, editOnly:true },
   // ── Bill Photo (add-only) ──
   { key:"_s3",               label:"📸 Bill Photo",        type:"section",  addOnly:true },
   { key:"BillPhoto",         label:"Attach Bill Image (shared via WhatsApp, not stored)", type:"file", half:false, addOnly:true },
@@ -905,13 +907,13 @@ function openPostSaveModal() {
   const photoNote = document.getElementById("postSavePhotoNote");
   photoNote.style.display = billPhotoFile ? "block" : "none";
 
-  // Show/hide UPI QR section
+  // Show QR for UPI payment modes
   const isUPI = UPI_MODES.includes(e.ExpectedPaymentMode);
-  const qrSection = document.getElementById("postSaveQR");
+  const qrSec = document.getElementById("postSaveQR");
   const qrImg = document.getElementById("postSaveQRImg");
-  if (qrSection && qrImg) {
-    qrSection.style.display = isUPI ? "block" : "none";
-    if (isUPI) qrImg.src = UPI_QR_URL;
+  if (qrSec && qrImg) {
+    qrSec.style.display = isUPI ? "block" : "none";
+    if (isUPI) qrImg.src = UPI_QR_IMG_URL;
   }
 
   // Show/hide delivery group alert button based on order type
@@ -935,7 +937,6 @@ function closePostSaveModal() {
 
 // ── WHATSAPP ─────────────────────────────────────────────────
 function buildCustomerMessage(entry) {
-  // Single order bill notification — shows only THIS order's details
   const isDelivery = (entry.OrderType || "Home Delivery") !== "Pay Later";
   const isUPI = UPI_MODES.includes(entry.ExpectedPaymentMode);
   const lines = [
@@ -952,7 +953,6 @@ function buildCustomerMessage(entry) {
     ``,
     `📸 Kindly make the payment and share the *screenshot of the transaction* so we can update your account.`,
   ];
-
   if (isUPI) {
     lines.push(
       ``,
@@ -960,12 +960,7 @@ function buildCustomerMessage(entry) {
       UPI_QR_SHARE_LINK
     );
   }
-
-  lines.push(
-    ``,
-    `Thank you for your business! 🙏`,
-    `— *${SHOP_NAME}*`,
-  );
+  lines.push(``, `Thank you for your business! 🙏`, `— *${SHOP_NAME}*`);
   return lines.join("\n");
 }
 
@@ -996,9 +991,6 @@ function buildFollowUpMessage(customerName, phone) {
     lines.push(`${i+1}. Bill No: *${b.BillNumber}*  |  ${fmtDate(b.Date)}  |  *${fmtCur(b.Amount)}*`);
   });
 
-  // Check if any pending bill has a UPI expected mode
-  const hasUPI = custPending.some(b => UPI_MODES.includes(b.ExpectedPaymentMode));
-
   lines.push(
     ``,
     `💰 *Total Outstanding: ${fmtCur(totalDue)}*`,
@@ -1007,19 +999,13 @@ function buildFollowUpMessage(customerName, phone) {
     `Kindly make the payment at your earliest convenience and share the *payment screenshot* so we can update your account.`,
   );
 
+  // Add QR link if any pending bill has UPI mode
+  const hasUPI = custPending.some(b => UPI_MODES.includes(b.ExpectedPaymentMode));
   if (hasUPI) {
-    lines.push(
-      ``,
-      `📲 *Scan QR code to pay via UPI:*`,
-      UPI_QR_SHARE_LINK
-    );
+    lines.push(``, `📲 *Scan QR code to pay via UPI:*`, UPI_QR_SHARE_LINK);
   }
 
-  lines.push(
-    ``,
-    `Thank you! 🙏`,
-    `— *${SHOP_NAME}*`,
-  );
+  lines.push(``, `Thank you! 🙏`, `— *${SHOP_NAME}*`);
   return lines.filter(l => l !== undefined).join("\n");
 }
 
@@ -1117,7 +1103,33 @@ function shareWithCustomer() {
   if (ph.length < 10) {
     showToast("⚠️ No valid phone number — cannot open WhatsApp", "error"); return;
   }
-  openWhatsApp(String(e.Phone), buildCustomerMessage(e), billPhotoFile, `Bill - ${e.BillNumber}`);
+  const msg = buildCustomerMessage(e);
+  const isUPI = UPI_MODES.includes(e.ExpectedPaymentMode);
+
+  // For UPI modes: try to share QR image as a file alongside the message
+  if (isUPI && typeof navigator.share === "function" && typeof navigator.canShare === "function") {
+    fetch(UPI_QR_IMG_URL)
+      .then(r => r.blob())
+      .then(blob => {
+        const qrFile = new File([blob], "UPI_QR.jpg", { type: blob.type || "image/jpeg" });
+        const shareData = { files: [qrFile], text: msg, title: `Bill - ${e.BillNumber}` };
+        if (navigator.canShare(shareData)) {
+          return navigator.share(shareData)
+            .then(() => showToast("Shared with QR image ✓"))
+            .catch(err => {
+              if (err.name !== "AbortError") openWhatsApp(String(e.Phone), msg, billPhotoFile, `Bill - ${e.BillNumber}`);
+            });
+        }
+        openWhatsApp(String(e.Phone), msg, billPhotoFile, `Bill - ${e.BillNumber}`);
+      })
+      .catch(() => {
+        // Fetch failed (CORS etc.) — fall back to text link
+        openWhatsApp(String(e.Phone), msg, billPhotoFile, `Bill - ${e.BillNumber}`);
+      });
+    return;
+  }
+
+  openWhatsApp(String(e.Phone), msg, billPhotoFile, `Bill - ${e.BillNumber}`);
 }
 
 // Core WhatsApp opener — always opens direct chat via wa.me, with optional photo share on mobile
@@ -1300,9 +1312,9 @@ function renderTable(tableId, countId, data, pendingOnly) {
 
 function renderPendingStats(pending) {
   const total  = pending.reduce((s,e) => s + Number(e.Amount||0), 0);
-  const oldest = pending.length ? pending.slice().sort((a,b)=>a.Date.localeCompare(b.Date))[0].Date : null;
+  const oldest = pending.length ? pending.slice().sort((a,b)=>normDate(a.Date).localeCompare(normDate(b.Date)))[0].Date : null;
   const today  = new Date().toISOString().split("T")[0];
-  const todayCnt = pending.filter(e=>e.Date===today).length;
+  const todayCnt = pending.filter(e => normDate(e.Date) === today).length;
   document.getElementById("pendingStats").innerHTML = [
     { label:"Pending Bills",      value: pending.length,   color:"#F59E0B", bg:"#FFFBEB" },
     { label:"Total Amount Due",   value: fmtCur(total),    color:"#DC2626", bg:"#FEF2F2" },
@@ -1878,7 +1890,7 @@ function renderDeliveriesTab(pendDels) {
   const statsEl = document.getElementById("deliveriesStats");
   if (statsEl) {
     const today = new Date().toISOString().split("T")[0];
-    const todayCnt = pendDels.filter(e => e.Date === today).length;
+    const todayCnt = pendDels.filter(e => normDate(e.Date) === today).length;
     const totalAmt  = pendDels.reduce((s,e) => s+Number(e.Amount||0), 0);
     statsEl.innerHTML = [
       { label:"Pending Deliveries", value: pendDels.length,  color:"#1D4ED8", bg:"#EFF6FF" },
@@ -1941,8 +1953,8 @@ function applyFilter(data, f) {
     const s = (f.search||"").toLowerCase().trim();
     if (s && !e.CustomerName.toLowerCase().includes(s)) return false;
     if (f.status   && e.Status !== f.status) return false;
-    if (f.dateFrom && e.Date < f.dateFrom)   return false;
-    if (f.dateTo   && e.Date > f.dateTo)     return false;
+    if (f.dateFrom && normDate(e.Date) < f.dateFrom) return false;
+    if (f.dateTo   && normDate(e.Date) > f.dateTo)   return false;
     return true;
   });
 }
@@ -2043,13 +2055,22 @@ function renderForm(data, isEdit) {
             onchange="onBillPhotoSelected(this)" style="padding:6px"/>
           <div id="billPreview"></div>`;
       } else {
-        inp = `<input class="form-control" type="${f.type}" id="ff_${f.key}" value="${data[f.key]||""}" />`;
+        // For time inputs, normalize Sheets date-time strings to HH:MM
+        // For date inputs, normalize to YYYY-MM-DD
+        let val = data[f.key] || "";
+        if (f.type === "time" && val) {
+          val = parseTimeToHHMM(val) || "";
+        } else if (f.type === "date" && val) {
+          val = normDate(val) || "";
+        }
+        inp = `<input class="form-control" type="${f.type}" id="ff_${f.key}" value="${val}" />`;
       }
       return `<div class="${cls}${delivClass}" id="fgroup_${f.key}"><label class="form-label">${f.label}</label>${inp}</div>`;
     }).join("");
 
   // Defaults
   if (!data.Date) { const el=document.getElementById("ff_Date"); if(el) el.value=new Date().toISOString().split("T")[0]; }
+  else { const el=document.getElementById("ff_Date"); if(el && data.Date) el.value = normDate(data.Date) || el.value; }
   if (!data.OrderTime && !isEdit) { const el=document.getElementById("ff_OrderTime"); if(el) el.value=new Date().toTimeString().slice(0,5); }
 
   // Apply delivery-only visibility on initial load
@@ -2213,10 +2234,35 @@ function getWeekKey(dateStr) {
   try { return `W${String(getWeek(dateStr)).padStart(2,"0")}-${dateStr.slice(0,4)}`; }
   catch { return ""; }
 }
+// Normalize any date format (incl. Sheets GMT strings) → "YYYY-MM-DD"
+function normDate(d) {
+  if (!d) return "";
+  const s = String(d).trim();
+  // Already YYYY-MM-DD
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return iso[0];
+  // Sheets GMT string: "Mon Feb 23 2026 00:00:00 GMT+0530 (IST)"
+  try {
+    const dt = new Date(s);
+    if (!isNaN(dt)) {
+      // Use local date parts (IST offset already in the string)
+      const y = dt.getFullYear();
+      const m = String(dt.getMonth()+1).padStart(2,"0");
+      const day = String(dt.getDate()).padStart(2,"0");
+      return `${y}-${m}-${day}`;
+    }
+  } catch(_) {}
+  return s;
+}
+
 function getGroupKey(dateStr) {
   if (!dateStr) return "";
-  const k = groupBy==="day"? dateStr : groupBy==="week"? getWeekKey(dateStr) : dateStr.slice(0,7);
-  return (k && !k.includes("undefined") && !k.includes("NaN")) ? k : "";
+  const nd = normDate(dateStr); // always YYYY-MM-DD
+  if (!nd || nd.includes("undefined") || nd.includes("NaN")) return "";
+  if (groupBy === "day")   return nd;
+  if (groupBy === "week")  return getWeekKey(nd);
+  if (groupBy === "month") return nd.slice(0,7);
+  return nd;
 }
 
 let toastTimer;
@@ -2245,7 +2291,7 @@ function getSampleData() {
 
 // ── INIT ──────────────────────────────────────────────────────
 window.onload = () => {
-  allEntries = getSampleData();
+  allEntries = []; // start empty — real data loaded from sheet below
   initFilterBars(); // creates persistent inputs — must run before renderAll
   renderAll();
   startAutoSync(); // background sync every 2 min (won't fire in demo mode)
