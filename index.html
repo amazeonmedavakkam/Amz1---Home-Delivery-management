@@ -679,7 +679,7 @@ const AUTO_SYNC_MS  = 2 * 60 * 1000; // 2 minutes
 // ── API ──────────────────────────────────────────────────────
 // Retry with exponential backoff to handle concurrent device access safely
 async function api(method, body, retries = 4) {
-  const isDemo = APPS_SCRIPT_URL === "https://script.google.com/macros/s/AKfycbwkupivAAta3mVzzAP2pg_rnXBGCAQT1DLw19tWqfMt_O35mPCE8Uw784WFZW43EtcHNg/exec";
+  const isDemo = APPS_SCRIPT_URL === "YOUR_APPS_SCRIPT_WEB_APP_URL";
   if (isDemo) { showToast("Demo mode — connect your Google Sheet first", "info"); return null; }
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
@@ -751,7 +751,7 @@ function startAutoSync() {
   autoSyncTimer = setInterval(async () => {
     const anyModalOpen = [...document.querySelectorAll(".modal-overlay")].some(m => m.style.display === "flex");
     if (anyModalOpen) return; // don't interrupt user
-    const isDemo = APPS_SCRIPT_URL === "https://script.google.com/macros/s/AKfycbwkupivAAta3mVzzAP2pg_rnXBGCAQT1DLw19tWqfMt_O35mPCE8Uw784WFZW43EtcHNg/exec";
+    const isDemo = APPS_SCRIPT_URL === "YOUR_APPS_SCRIPT_WEB_APP_URL";
     if (isDemo) return;
     await loadData(true); // silent
   }, AUTO_SYNC_MS);
@@ -1279,7 +1279,9 @@ function sendSMS(id) {
 
 // ── RENDER ALL ────────────────────────────────────────────────
 function renderAll() {
-  document.getElementById("setupBanner").style.display = "none";
+  // Hide setup banner whenever URL is properly configured
+  const banner = document.getElementById("setupBanner");
+  if (banner) banner.style.display = APPS_SCRIPT_URL === "YOUR_APPS_SCRIPT_WEB_APP_URL" ? "" : "none";
   renderTablesOnly();
 }
 
@@ -2381,7 +2383,7 @@ window.onload = () => {
   initFilterBars(); // creates persistent inputs — must run before renderAll
   renderAll();
   startAutoSync(); // background sync every 2 min (won't fire in demo mode)
-  if (APPS_SCRIPT_URL !== "https://script.google.com/macros/s/AKfycbwkupivAAta3mVzzAP2pg_rnXBGCAQT1DLw19tWqfMt_O35mPCE8Uw784WFZW43EtcHNg/exec") loadData();
+  if (APPS_SCRIPT_URL !== "YOUR_APPS_SCRIPT_WEB_APP_URL") loadData();
 };
 </script>
 </body>
