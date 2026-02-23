@@ -1128,7 +1128,7 @@ function sendSMSFromModal() {
 function sendFollowUpSMSFromModal() {
   const e = lastSavedEntry;
   if (!e) return;
-  const msg = buildFollowUpMessage(e.CustomerName);
+  const msg = buildFollowUpMessage(e.CustomerName, e.Phone);
   if (msg) openSMS(e.Phone, msg);
 }
 
