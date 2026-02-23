@@ -1089,7 +1089,7 @@ function openWhatsApp(phone, msg, photoFile, shareTitle) {
         .then(() => showToast("Shared via WhatsApp ✓"))
         .catch(err => {
           if (err.name !== "AbortError") {
-            window.open(waUrl, "_blank");
+            window.location.href = waUrl;
             showToast("📸 Attach bill image manually in WhatsApp", "info");
           }
         });
@@ -1097,10 +1097,9 @@ function openWhatsApp(phone, msg, photoFile, shareTitle) {
     }
   }
 
-  // Default: open WhatsApp direct chat with message pre-filled
-  const _a = document.createElement("a");
-  _a.href = waUrl; _a.target = "_blank"; _a.rel = "noopener";
-  document.body.appendChild(_a); _a.click(); document.body.removeChild(_a);
+  // Default: open WhatsApp — window.location.href is most reliable on mobile (no popup block)
+  // On desktop it opens WhatsApp Web; on mobile it deep-links into the app directly
+  window.location.href = waUrl;
   if (photoFile) showToast("📸 Photo ready — attach it manually in WhatsApp after it opens", "info");
 }
 
