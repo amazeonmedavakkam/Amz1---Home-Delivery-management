@@ -528,6 +528,13 @@
         </button>
       </div>
       <div id="postSaveGroupAlert" style="margin-top:10px"></div>
+      <!-- UPI QR Code section — shown only for Paytm/Phonepe -->
+      <div id="postSaveQR" style="display:none;margin-top:14px;background:#F0FDF4;border:1.5px solid #86EFAC;border-radius:12px;padding:14px 16px;text-align:center">
+        <div style="font-size:12px;font-weight:700;color:#166534;margin-bottom:10px;text-transform:uppercase;letter-spacing:.06em">📲 UPI QR Code — Share with Customer</div>
+        <img id="postSaveQRImg" src="" alt="UPI QR Code"
+          style="max-width:200px;width:100%;border-radius:10px;border:2px solid #86EFAC;display:block;margin:0 auto 10px" />
+        <div style="font-size:11px;color:#166534;line-height:1.5">Tap the WhatsApp button above — the QR link is included in the message.<br>Or screenshot this QR and send separately.</div>
+      </div>
       <button class="btn-cancel" style="width:100%;padding:11px;text-align:center;margin-top:10px" onclick="closePostSaveModal()">
         Done — Skip for now
       </button>
@@ -584,6 +591,12 @@ const DELETE_PASSWORD      = "amaze2024"; // Password required to delete any ent
 // ────────────────────────────────────────────────────────────
 
 const DELIVERY_MODES = ["Paytm", "Cash", "Phonepe", "Razorpay", "Card", "Sodexo"];
+// UPI payment modes that require QR code in WhatsApp messages
+const UPI_MODES = ["Paytm", "Phonepe"];
+// QR code image URL (Google Drive direct view)
+const UPI_QR_URL = "https://drive.google.com/uc?export=view&id=19s8xQSstqWABr__bamum7RsAhwI-_xT5";
+// Shareable QR link for WhatsApp message text
+const UPI_QR_SHARE_LINK = "https://drive.google.com/file/d/19s8xQSstqWABr__bamum7RsAhwI-_xT5/view";
 
 const FORM_FIELDS = [
   // ── Order Type (rendered specially by renderForm) ──
@@ -892,6 +905,15 @@ function openPostSaveModal() {
   const photoNote = document.getElementById("postSavePhotoNote");
   photoNote.style.display = billPhotoFile ? "block" : "none";
 
+  // Show/hide UPI QR section
+  const isUPI = UPI_MODES.includes(e.ExpectedPaymentMode);
+  const qrSection = document.getElementById("postSaveQR");
+  const qrImg = document.getElementById("postSaveQRImg");
+  if (qrSection && qrImg) {
+    qrSection.style.display = isUPI ? "block" : "none";
+    if (isUPI) qrImg.src = UPI_QR_URL;
+  }
+
   // Show/hide delivery group alert button based on order type
   const alertWrap = document.getElementById("postSaveGroupAlert");
   if (alertWrap) {
@@ -915,6 +937,7 @@ function closePostSaveModal() {
 function buildCustomerMessage(entry) {
   // Single order bill notification — shows only THIS order's details
   const isDelivery = (entry.OrderType || "Home Delivery") !== "Pay Later";
+  const isUPI = UPI_MODES.includes(entry.ExpectedPaymentMode);
   const lines = [
     isDelivery ? `🚚 *Bill from ${SHOP_NAME}*` : `🏪 *Bill from ${SHOP_NAME}*`,
     ``,
@@ -928,10 +951,21 @@ function buildCustomerMessage(entry) {
     `💳 Payment Mode: *${entry.ExpectedPaymentMode || entry.PaymentMode || "—"}*`,
     ``,
     `📸 Kindly make the payment and share the *screenshot of the transaction* so we can update your account.`,
+  ];
+
+  if (isUPI) {
+    lines.push(
+      ``,
+      `📲 *Scan QR code to pay via ${entry.ExpectedPaymentMode}:*`,
+      UPI_QR_SHARE_LINK
+    );
+  }
+
+  lines.push(
     ``,
     `Thank you for your business! 🙏`,
     `— *${SHOP_NAME}*`,
-  ];
+  );
   return lines.join("\n");
 }
 
@@ -962,12 +996,26 @@ function buildFollowUpMessage(customerName, phone) {
     lines.push(`${i+1}. Bill No: *${b.BillNumber}*  |  ${fmtDate(b.Date)}  |  *${fmtCur(b.Amount)}*`);
   });
 
+  // Check if any pending bill has a UPI expected mode
+  const hasUPI = custPending.some(b => UPI_MODES.includes(b.ExpectedPaymentMode));
+
   lines.push(
     ``,
     `💰 *Total Outstanding: ${fmtCur(totalDue)}*`,
     daysPending > 0 ? `⏰ Oldest bill is *${daysPending} day(s)* old.` : ``,
     ``,
     `Kindly make the payment at your earliest convenience and share the *payment screenshot* so we can update your account.`,
+  );
+
+  if (hasUPI) {
+    lines.push(
+      ``,
+      `📲 *Scan QR code to pay via UPI:*`,
+      UPI_QR_SHARE_LINK
+    );
+  }
+
+  lines.push(
     ``,
     `Thank you! 🙏`,
     `— *${SHOP_NAME}*`,
