@@ -604,8 +604,8 @@ const FORM_FIELDS = [
   { key:"OrderTime",         label:"Order Received Time",  type:"time",     half:true },
   { key:"BilledTime",        label:"Order Billed Time",    type:"time",     half:true },
   // Delivery-only fields (hidden for Pay Later)
-  { key:"DeliveryTime",      label:"Delivery Time",        type:"time",     half:true,  deliveryOnly:true },
-  { key:"DeliveryPerson",    label:"Delivery Person",      type:"text",     half:true,  deliveryOnly:true },
+  { key:"DeliveryTime",      label:"Delivery Time",        type:"time",     half:true,  deliveryOnly:true, editOnly:true },
+  { key:"DeliveryPerson",    label:"Delivery Person",      type:"text",     half:true,  deliveryOnly:true, editOnly:true },
   { key:"PaymentMode",       label:"Actual Payment Mode",  type:"select",   half:true, options: DELIVERY_MODES, editOnly:true },
   // ── Edit-only ──
   { key:"Status",            label:"Status",               type:"select",   half:true, options:["pending","received"], editOnly:true },
@@ -735,6 +735,16 @@ async function saveEntry() {
     if (!data[f.key] || !String(data[f.key]).trim()) {
       showToast(`⚠️ ${f.label} is required`, "error"); return;
     }
+  }
+  // Bill photo is mandatory for new orders
+  if (!editingId && !billPhotoFile) {
+    showToast("⚠️ Bill image is required — please attach a photo of the bill", "error");
+    return;
+  }
+  // Bill photo is mandatory for new orders
+  if (!editingId && !billPhotoFile) {
+    showToast("⚠️ Bill image is required — please attach a photo of the bill", "error");
+    return;
   }
   // Duplicate bill number check (only for new entries)
   if (!editingId) {
