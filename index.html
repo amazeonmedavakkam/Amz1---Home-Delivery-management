@@ -934,7 +934,7 @@ function buildCustomerMessage(entry) {
       ``,
       `Dear *${entry.CustomerName}*,`,
       ``,
-      `Your order has been *picked, billed and packed* by our team and will be *delivered to you shortly*. 🎉`,
+      `Great news! Your order has been *picked, billed and packed* by our team and will be *delivered to you shortly*. 🎉`,
       ``,
       `📄 Bill No: *${entry.BillNumber}*`,
       `📅 Date: ${fmtDate(entry.Date)}`,
@@ -944,7 +944,7 @@ function buildCustomerMessage(entry) {
     if (isAlreadyPaid) {
       lines.push(``, `✅ *Payment received — this bill is shared for your reference only.*`);
     } else {
-      lines.push(``, `📸Once received, please share the *screenshot of the transaction* so we can update your account.`);
+      lines.push(``, `📸 Kindly keep the payment ready. Once received, please share the *screenshot of the transaction* so we can update your account.`);
     }
     lines.push(``, `Thank you for your order! 🙏`, `— *${SHOP_NAME}*`);
     return lines.join("\n");
