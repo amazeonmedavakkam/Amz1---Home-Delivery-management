@@ -934,7 +934,7 @@ function buildCustomerMessage(entry) {
       ``,
       `Dear *${entry.CustomerName}*,`,
       ``,
-      `Great news! Your order has been *picked, billed and packed* by our team and will be *delivered to you shortly*. 🎉`,
+      `Your order has been *picked, billed and packed* by our team and will be *delivered to you shortly*. 🎉`,
       ``,
       `📄 Bill No: *${entry.BillNumber}*`,
       `📅 Date: ${fmtDate(entry.Date)}`,
@@ -944,7 +944,7 @@ function buildCustomerMessage(entry) {
     if (isAlreadyPaid) {
       lines.push(``, `✅ *Payment received — this bill is shared for your reference only.*`);
     } else {
-      lines.push(``, `📸 Kindly keep the payment ready. Once received, please share the *screenshot of the transaction* so we can update your account.`);
+      lines.push(``, `📸Once received, please share the *screenshot of the transaction* so we can update your account.`);
     }
     lines.push(``, `Thank you for your order! 🙏`, `— *${SHOP_NAME}*`);
     return lines.join("\n");
@@ -1129,29 +1129,11 @@ function openWhatsApp(phone, msg, photoFile, shareTitle) {
     showToast("⚠️ Phone number missing or invalid — cannot open WhatsApp", "error");
     return;
   }
-  // Use api.whatsapp.com/send with type=phone_number — most reliable for direct chat on all devices
-  // This bypasses the contact picker and opens the conversation directly
+  // Always open WhatsApp direct chat via wa.me — bypasses contact picker, works on all devices.
+  // navigator.share() was deliberately removed: it opens the OS share sheet (not WA directly),
+  // which breaks the "open customer chat instantly" behaviour.
   const waUrl = `https://wa.me/${normalised}?text=${encodeURIComponent(msg)}`;
 
-  // If photo attached AND on mobile with Web Share API → share natively (opens WhatsApp share sheet)
-  if (photoFile && typeof navigator.share === "function" && typeof navigator.canShare === "function") {
-    const shareData = { files: [photoFile], text: msg, title: shareTitle || "Bill" };
-    if (navigator.canShare(shareData)) {
-      navigator.share(shareData)
-        .then(() => showToast("Shared via WhatsApp ✓"))
-        .catch(err => {
-          if (err.name !== "AbortError") {
-            const _a = document.createElement("a"); _a.href = waUrl; _a.target = "_blank"; _a.rel = "noopener noreferrer";
-            document.body.appendChild(_a); _a.click(); document.body.removeChild(_a);
-            showToast("📸 Attach bill image manually in WhatsApp", "info");
-          }
-        });
-      return;
-    }
-  }
-
-  // Default: open WhatsApp via anchor click — opens WA without navigating away from the app
-  // On desktop it opens WhatsApp Web; on mobile it deep-links into the app directly
   const waAnchor = document.createElement("a");
   waAnchor.href = waUrl;
   waAnchor.target = "_blank";
@@ -1159,7 +1141,9 @@ function openWhatsApp(phone, msg, photoFile, shareTitle) {
   document.body.appendChild(waAnchor);
   waAnchor.click();
   document.body.removeChild(waAnchor);
-  if (photoFile) showToast("📸 Photo ready — attach it manually in WhatsApp after it opens", "info");
+
+  // If a bill photo is attached, remind the user to attach it inside WhatsApp
+  if (photoFile) showToast("📸 WhatsApp opened! Attach the bill photo inside the chat ✓", "info");
 }
 
 function openSMS(phone, msg) {
