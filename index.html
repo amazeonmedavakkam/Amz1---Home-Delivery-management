@@ -1078,6 +1078,9 @@ function buildGroupAlertMessage(entry) {
     : allEntries.filter(x => x.CustomerName === entry.CustomerName && x.Status === "pending");
   const totalDue    = custPending.reduce((s,x) => s + Number(x.Amount||0), 0);
 
+  // Razorpay = online prepaid; Status "received" = prepaid checkbox ticked — no cash collection needed
+  const isPaid = ["Razorpay"].includes(entry.ExpectedPaymentMode) || entry.Status === "received";
+
   const lines = [
     `🚚 *Home Delivery Order Received!*`, ``,
     `📄 *Bill No:* ${entry.BillNumber}`,
@@ -1085,6 +1088,9 @@ function buildGroupAlertMessage(entry) {
     `📞 *Mobile:* ${entry.Phone || "—"}`,
     `💰 *Amount:* ${fmtCur(entry.Amount)}`,
     `💳 *Payment Mode (Communicated by Customer):* ${entry.ExpectedPaymentMode || "—"}`,
+    isPaid
+      ? `✅ *Payment Status: PAID — No collection needed on delivery*`
+      : `⏳ *Payment Status: Pending — Collect ${fmtCur(entry.Amount)} on delivery*`,
     `⏰ *Order Time:* ${entry.OrderTime || "—"}`,
     `🏷️ *Taken By:* ${entry.TakenBy || "—"}`,
   ];
@@ -1135,7 +1141,8 @@ function openWhatsApp(phone, msg, photoFile, shareTitle) {
         .then(() => showToast("Shared via WhatsApp ✓"))
         .catch(err => {
           if (err.name !== "AbortError") {
-            window.location.href = waUrl;
+            const _a = document.createElement("a"); _a.href = waUrl; _a.target = "_blank"; _a.rel = "noopener noreferrer";
+            document.body.appendChild(_a); _a.click(); document.body.removeChild(_a);
             showToast("📸 Attach bill image manually in WhatsApp", "info");
           }
         });
@@ -1143,9 +1150,15 @@ function openWhatsApp(phone, msg, photoFile, shareTitle) {
     }
   }
 
-  // Default: open WhatsApp — window.location.href is most reliable on mobile (no popup block)
+  // Default: open WhatsApp via anchor click — opens WA without navigating away from the app
   // On desktop it opens WhatsApp Web; on mobile it deep-links into the app directly
-  window.location.href = waUrl;
+  const waAnchor = document.createElement("a");
+  waAnchor.href = waUrl;
+  waAnchor.target = "_blank";
+  waAnchor.rel = "noopener noreferrer";
+  document.body.appendChild(waAnchor);
+  waAnchor.click();
+  document.body.removeChild(waAnchor);
   if (photoFile) showToast("📸 Photo ready — attach it manually in WhatsApp after it opens", "info");
 }
 
@@ -1655,12 +1668,12 @@ function drawBarChart(containerId, rows, series, opts={}) {
         <text x="${x+barW/2}" y="${y-4}" text-anchor="middle" font-size="8" fill="${s.color}" font-weight="700" class="bar-lbl${alwaysShow?" bar-lbl-show":""}">${lbl}</text>
       </g>`;
     });
-    // Clean date display: YYYY-MM-DD → DD/MM | YYYY-MM → Jan | YYYY-Www → Www
+    // Clean date display: YYYY-MM-DD → DD/MM | YYYY-MM → Jan | Www-YYYY → Www
     let dispK = k||"";
     if (dispK.match(/^\d{4}-\d{2}-\d{2}$/)) {
-      const p = dispK.split("-"); dispK = `${p[2]}/${p[1]}`;
-    } else if (dispK.match(/^\d{4}-W\d{2}$/)) {
-      dispK = dispK.slice(5); // W03
+      const p = dispK.split("-"); dispK = `${p[2]}/${p[1]}`; // DD/MM
+    } else if (dispK.match(/^W\d{2}-\d{4}$/)) {
+      dispK = dispK.slice(0,3); // W03  (key format is W03-2026)
     } else if (dispK.match(/^\d{4}-\d{2}$/)) {
       const m = parseInt(dispK.slice(5),10); dispK = MONTH_ABBR[m-1]||dispK.slice(5);
     }
@@ -2028,9 +2041,15 @@ function renderForm(data, isEdit) {
       } else if (f.type === "textarea") {
         inp = `<textarea class="form-control" id="ff_${f.key}" rows="2">${data[f.key]||""}</textarea>`;
       } else if (f.type === "file") {
-        inp = `<input class="form-control" type="file" id="ff_${f.key}" accept="image/*" capture="environment"
-            onchange="onBillPhotoSelected(this)" style="padding:6px"/>
-          <div id="billPreview"></div>`;
+        inp = `<div style="display:flex;flex-direction:column;gap:6px">
+          <input class="form-control" type="file" id="ff_${f.key}" accept="image/*" capture="environment"
+              onchange="onBillPhotoSelected(this)" style="padding:6px;display:none"/>
+          <button type="button" id="billPickerBtn" onclick="document.getElementById('ff_BillPhoto').click()"
+            style="padding:10px 16px;border-radius:8px;border:1.5px solid var(--slate-200);background:var(--slate-50);color:var(--slate-700);font-size:13px;font-weight:700;cursor:pointer;text-align:left">
+            📷 Tap to Capture / Choose Bill Photo
+          </button>
+          <div id="billPreview"></div>
+        </div>`;
       } else {
         inp = `<input class="form-control" type="${f.type}" id="ff_${f.key}" value="${data[f.key]||""}" />`;
       }
@@ -2069,16 +2088,26 @@ function applyOrderTypeVisibility(type) {
 function onBillPhotoSelected(input) {
   billPhotoFile = input.files?.[0] || null;
   const preview = document.getElementById("billPreview");
+  const pickerBtn = document.getElementById("billPickerBtn");
   if (!preview) return;
   if (billPhotoFile) {
     const reader = new FileReader();
     reader.onload = ev => {
-      preview.innerHTML = `<img src="${ev.target.result}" class="bill-preview-img" alt="Bill preview" />
-        <div class="photo-badge" style="margin-top:6px">✅ Bill photo selected: ${billPhotoFile.name}</div>`;
+      preview.innerHTML = `
+        <img src="${ev.target.result}" class="bill-preview-img" alt="Bill preview" />
+        <div style="display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap">
+          <div class="photo-badge">✅ ${billPhotoFile.name}</div>
+          <button type="button" onclick="document.getElementById('ff_BillPhoto').click()"
+            style="padding:6px 12px;border-radius:8px;border:1.5px solid var(--orange);background:var(--orange-bg);color:var(--orange);font-size:12px;font-weight:700;cursor:pointer">
+            🔄 Replace Photo
+          </button>
+        </div>`;
     };
     reader.readAsDataURL(billPhotoFile);
+    if (pickerBtn) pickerBtn.style.display = "none";
   } else {
     preview.innerHTML = "";
+    if (pickerBtn) pickerBtn.style.display = "";
   }
 }
 
