@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>DeliverEase — Home Delivery Management System</title>
+<title>DeliverEase — Home Delivery Management</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚚</text></svg>" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Lora:wght@600;700&display=swap" rel="stylesheet" />
 <style>
@@ -38,7 +39,7 @@
     --shadow-lg: 0 8px 30px rgba(0,0,0,.12);
     --radius   : 14px;
   }
-  body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--green-50); color: var(--slate-800); min-height: 100vh; }
+  body { font-family: 'Plus Jakarta Sans', sans-serif; background: var(--green-50); color: var(--slate-800); min-height: 100vh; font-size: 15px; }
   button { font-family: inherit; cursor: pointer; }
   input, select, textarea { font-family: inherit; }
 
@@ -67,9 +68,8 @@
   .btn-sync:hover { background: rgba(255,255,255,.2); }
 
   /* ── Tabs ── */
-  .tabs { display: flex; gap: 4px; margin-top: 14px; overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding-bottom: 0; }
-  .tabs::-webkit-scrollbar { display: none; }
-  .tab { padding: 10px 18px; border: none; border-radius: 8px 8px 0 0; font-size: 13px; font-weight: 600; background: transparent; color: rgba(255,255,255,.65); transition: all .2s; position: relative; white-space: nowrap; flex-shrink: 0; }
+  .tabs { display: flex; gap: 4px; margin-top: 14px; }
+  .tab { padding: 10px 18px; border: none; border-radius: 8px 8px 0 0; font-size: 13px; font-weight: 600; background: transparent; color: rgba(255,255,255,.65); transition: all .2s; position: relative; }
   .tab.active { background: #fff; color: var(--green-800); }
   .tab:hover:not(.active) { color: #fff; background: rgba(255,255,255,.12); }
   .tab-badge { position: absolute; top: 6px; right: 6px; background: var(--amber); color: #fff; font-size: 9px; font-weight: 800; padding: 1px 5px; border-radius: 10px; }
@@ -91,16 +91,16 @@
 
   /* ── Filter Bar ── */
   .filter-bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-  .filter-input { border: 1.5px solid var(--slate-200); border-radius: 8px; padding: 7px 12px; font-size: 13px; outline: none; background: var(--slate-50); color: var(--slate-800); min-width: 150px; }
+  .filter-input { border: 1.5px solid var(--slate-200); border-radius: 8px; padding: 7px 12px; font-size: 14px; outline: none; background: var(--slate-50); color: var(--slate-800); min-width: 150px; }
   .filter-input:focus { border-color: var(--green-600); }
   .btn-clear { padding: 7px 12px; border-radius: 8px; border: 1.5px solid #FCA5A5; background: var(--red-bg); font-size: 12px; font-weight: 600; color: var(--red); }
 
   /* ── Table ── */
-  .table-wrap { overflow-x: auto; overflow-y: auto; max-height: calc(100vh - 240px); }
+  .table-wrap { overflow-x: auto; }
   table { width: 100%; border-collapse: collapse; min-width: 1200px; }
   thead tr { background: var(--slate-50); }
-  th { padding: 10px 11px; text-align: left; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--slate-400); border-bottom: 1px solid var(--slate-100); white-space: nowrap; position: sticky; top: 0; background: var(--slate-50); z-index: 5; box-shadow: 0 1px 0 var(--slate-200); }
-  td { padding: 10px 11px; font-size: 12px; color: var(--slate-800); border-bottom: 1px solid var(--slate-100); vertical-align: middle; }
+  th { padding: 10px 11px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--slate-400); border-bottom: 1px solid var(--slate-100); white-space: nowrap; }
+  td { padding: 10px 11px; font-size: 13px; color: var(--slate-800); border-bottom: 1px solid var(--slate-100); vertical-align: middle; }
   tbody tr:hover { background: var(--green-50); }
   .td-bill { font-weight: 700; color: var(--blue); }
   .td-name { font-weight: 600; }
@@ -529,13 +529,6 @@
         </button>
       </div>
       <div id="postSaveGroupAlert" style="margin-top:10px"></div>
-      <!-- UPI QR shown only for Paytm/Phonepe -->
-      <div id="postSaveQR" style="display:none;margin-top:14px;background:#F0FDF4;border:1.5px solid #86EFAC;border-radius:12px;padding:14px 16px;text-align:center">
-        <div style="font-size:12px;font-weight:700;color:#166534;margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em">📲 UPI QR — Share with Customer</div>
-        <img id="postSaveQRImg" src="" alt="UPI QR Code" crossorigin="anonymous"
-          style="max-width:180px;width:100%;border-radius:10px;border:2px solid #86EFAC;display:block;margin:0 auto 8px" />
-        <div style="font-size:11px;color:#166534;line-height:1.5">The QR image is auto-included when you tap <strong>📱 Bill via WhatsApp</strong> below.<br>Or screenshot this QR and send separately.</div>
-      </div>
       <button class="btn-cancel" style="width:100%;padding:11px;text-align:center;margin-top:10px" onclick="closePostSaveModal()">
         Done — Skip for now
       </button>
@@ -592,12 +585,6 @@ const DELETE_PASSWORD      = "amaze2024"; // Password required to delete any ent
 // ────────────────────────────────────────────────────────────
 
 const DELIVERY_MODES = ["Paytm", "Cash", "Phonepe", "Razorpay", "Card", "Sodexo"];
-// UPI payment modes that get QR code shared with customer
-const UPI_MODES = ["Paytm", "Phonepe"];
-// Google Drive file ID for your UPI QR code image
-const UPI_QR_DRIVE_ID   = "19s8xQSstqWABr__bamum7RsAhwI-_xT5";
-const UPI_QR_IMG_URL    = `https://drive.google.com/uc?export=view&id=${UPI_QR_DRIVE_ID}`;
-const UPI_QR_SHARE_LINK = `https://drive.google.com/file/d/${UPI_QR_DRIVE_ID}/view`;
 
 const FORM_FIELDS = [
   // ── Order Type (rendered specially by renderForm) ──
@@ -623,7 +610,6 @@ const FORM_FIELDS = [
   // ── Edit-only ──
   { key:"Status",            label:"Status",               type:"select",   half:true, options:["pending","received"], editOnly:true },
   { key:"ReceivedBy",        label:"Received By",          type:"text",     half:true, editOnly:true },
-  { key:"PaymentDate",       label:"Payment Received Date", type:"date",    half:true, editOnly:true },
   // ── Bill Photo (add-only) ──
   { key:"_s3",               label:"📸 Bill Photo",        type:"section",  addOnly:true },
   { key:"BillPhoto",         label:"Attach Bill Image (shared via WhatsApp, not stored)", type:"file", half:false, addOnly:true },
@@ -767,6 +753,13 @@ async function saveEntry() {
       showToast(`⚠️ Bill Number "${data.BillNumber}" already exists for ${dup.CustomerName}. Please use a unique bill number.`, "error");
       return;
     }
+  } else {
+    // On edit: ensure no OTHER entry has the same bill number
+    const dup = allEntries.find(e => e.ID !== editingId && e.BillNumber && e.BillNumber.trim().toLowerCase() === data.BillNumber.trim().toLowerCase());
+    if (dup) {
+      showToast(`⚠️ Bill Number "${data.BillNumber}" already used for ${dup.CustomerName}. Use a unique bill number.`, "error");
+      return;
+    }
   }
   const btn = document.getElementById("saveBtn");
   btn.innerHTML = '<span class="spinner"></span>Saving…';
@@ -784,7 +777,8 @@ async function saveEntry() {
     }
     btn.innerHTML = "Save Changes";
   } else {
-    const isPrepaid = data.Prepaid === "true" || data.Prepaid === true;
+    const isPrepaid = data.Prepaid === "true" || data.Prepaid === true
+                   || PREPAID_MODES.includes(data.ExpectedPaymentMode);
     data.Status = isPrepaid ? "received" : "pending";
     if (isPrepaid) {
       data.PaymentMode  = data.ExpectedPaymentMode || "";
@@ -889,6 +883,7 @@ function openPostSaveModal() {
   if (!e) return;
 
   const isDelivery  = (e.OrderType || "Home Delivery") !== "Pay Later";
+  const isAlreadyPaid = PREPAID_MODES.includes(e.ExpectedPaymentMode) || e.Status === "received";
   // Outstanding bills check — by phone number
   const normPhone   = (e.Phone||"").replace(/\D/g,"").slice(-10);
   const custPending = allEntries.filter(x => {
@@ -897,24 +892,19 @@ function openPostSaveModal() {
   });
   const totalDue = custPending.reduce((s,x) => s + Number(x.Amount||0), 0);
 
+  const paidBadge = isAlreadyPaid
+    ? `<span style="background:#DCFCE7;color:#065F46;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:6px">✅ PAID</span>`
+    : `<span style="background:#FEF3C7;color:#92400E;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:6px">⏳ PAYMENT PENDING</span>`;
+
   document.getElementById("postSaveInfo").innerHTML =
-    `${isDelivery?"🚚":"🏪"} <strong>${e.OrderType||"Home Delivery"}</strong> &nbsp;|&nbsp; <strong>📦 ${e.BillNumber}</strong><br>` +
+    `${isDelivery?"🚚":"🏪"} <strong>${e.OrderType||"Home Delivery"}</strong> &nbsp;|&nbsp; <strong>📦 ${e.BillNumber}</strong>${paidBadge}<br>` +
     `👤 <strong>${e.CustomerName}</strong> &nbsp;|&nbsp; 📞 ${e.Phone || "—"}<br>` +
-    `💰 <strong>${fmtCur(e.Amount)}</strong> &nbsp;|&nbsp; 💳 Expected: <strong>${e.ExpectedPaymentMode || "—"}</strong><br>` +
+    `💰 <strong>${fmtCur(e.Amount)}</strong> &nbsp;|&nbsp; 💳 ${e.ExpectedPaymentMode || "—"}<br>` +
     `<span style="font-size:11px;color:#059669;font-weight:600">📱 WA/SMS bill buttons below will send only THIS order's details</span>` +
     (custPending.length > 1 ? `<br><span style="color:#DC2626;font-weight:700;font-size:12px">⚠️ This customer has ${custPending.length} pending bills totalling ${fmtCur(totalDue)} — use WA F/U to send all</span>` : "");
 
   const photoNote = document.getElementById("postSavePhotoNote");
   photoNote.style.display = billPhotoFile ? "block" : "none";
-
-  // Show QR for UPI payment modes
-  const isUPI = UPI_MODES.includes(e.ExpectedPaymentMode);
-  const qrSec = document.getElementById("postSaveQR");
-  const qrImg = document.getElementById("postSaveQRImg");
-  if (qrSec && qrImg) {
-    qrSec.style.display = isUPI ? "block" : "none";
-    if (isUPI) qrImg.src = UPI_QR_IMG_URL;
-  }
 
   // Show/hide delivery group alert button based on order type
   const alertWrap = document.getElementById("postSaveGroupAlert");
@@ -936,32 +926,84 @@ function closePostSaveModal() {
 }
 
 // ── WHATSAPP ─────────────────────────────────────────────────
+// Payment modes that mean the customer has already paid upfront
+const PREPAID_MODES = ["Razorpay"];
+
 function buildCustomerMessage(entry) {
   const isDelivery = (entry.OrderType || "Home Delivery") !== "Pay Later";
-  const isUPI = UPI_MODES.includes(entry.ExpectedPaymentMode);
-  const lines = [
-    isDelivery ? `🚚 *Bill from ${SHOP_NAME}*` : `🏪 *Bill from ${SHOP_NAME}*`,
-    ``,
-    `Dear *${entry.CustomerName}*,`,
-    ``,
-    `Please find your bill details below:`,
-    ``,
-    `📄 Bill No: *${entry.BillNumber}*`,
-    `📅 Date: ${fmtDate(entry.Date)}`,
-    `💰 Amount Due: *${fmtCur(entry.Amount)}*`,
-    `💳 Payment Mode: *${entry.ExpectedPaymentMode || entry.PaymentMode || "—"}*`,
-    ``,
-    `📸 Kindly make the payment and share the *screenshot of the transaction* so we can update your account.`,
-  ];
-  if (isUPI) {
-    lines.push(
+  const expMode    = entry.ExpectedPaymentMode || entry.PaymentMode || "";
+  // Already paid = Razorpay mode OR status is already "received" (prepaid checkbox was ticked)
+  const isAlreadyPaid = PREPAID_MODES.includes(expMode) || entry.Status === "received";
+
+  if (isDelivery) {
+    // ── HOME DELIVERY ──
+    const lines = [
+      `🚚 *Order Update from ${SHOP_NAME}*`,
       ``,
-      `📲 *Scan QR code to pay via ${entry.ExpectedPaymentMode}:*`,
-      UPI_QR_SHARE_LINK
-    );
+      `Dear *${entry.CustomerName}*,`,
+      ``,
+      `Great news! Your order has been *picked, billed and packed* by our team and will be *delivered to you shortly*. 🎉`,
+      ``,
+      `📄 Bill No: *${entry.BillNumber}*`,
+      `📅 Date: ${fmtDate(entry.Date)}`,
+      `💰 Amount: *${fmtCur(entry.Amount)}*`,
+    ];
+
+    if (isAlreadyPaid) {
+      lines.push(
+        `💳 Payment Mode: *${expMode}*`,
+        ``,
+        `✅ *Payment has been received. This bill is shared for your reference only.*`,
+        ``,
+        `Thank you for shopping with us! 🙏`,
+        `— *${SHOP_NAME}*`
+      );
+    } else {
+      lines.push(
+        `💳 Expected Payment: *${expMode || "—"}*`,
+        ``,
+        `📸 Kindly keep the payment ready. Once received, please share the *screenshot of the transaction* so we can update your account.`,
+        ``,
+        `Thank you for your order! 🙏`,
+        `— *${SHOP_NAME}*`
+      );
+    }
+    return lines.join("\n");
+
+  } else {
+    // ── PAY LATER (Walk-in) ──
+    const lines = [
+      `🏪 *Bill from ${SHOP_NAME}*`,
+      ``,
+      `Dear *${entry.CustomerName}*,`,
+      ``,
+      `Please find your bill details below:`,
+      ``,
+      `📄 Bill No: *${entry.BillNumber}*`,
+      `📅 Date: ${fmtDate(entry.Date)}`,
+      `💰 Amount Due: *${fmtCur(entry.Amount)}*`,
+      `💳 Payment Mode: *${expMode || "—"}*`,
+    ];
+
+    if (isAlreadyPaid) {
+      lines.push(
+        ``,
+        `✅ *Payment has been received. This bill is shared for your reference only.*`,
+        ``,
+        `Thank you for shopping with us! 🙏`,
+        `— *${SHOP_NAME}*`
+      );
+    } else {
+      lines.push(
+        ``,
+        `📸 Kindly make the payment and share the *screenshot of the transaction* so we can update your account.`,
+        ``,
+        `Thank you for your business! 🙏`,
+        `— *${SHOP_NAME}*`
+      );
+    }
+    return lines.join("\n");
   }
-  lines.push(``, `Thank you for your business! 🙏`, `— *${SHOP_NAME}*`);
-  return lines.join("\n");
 }
 
 function buildFollowUpMessage(customerName, phone) {
@@ -997,15 +1039,10 @@ function buildFollowUpMessage(customerName, phone) {
     daysPending > 0 ? `⏰ Oldest bill is *${daysPending} day(s)* old.` : ``,
     ``,
     `Kindly make the payment at your earliest convenience and share the *payment screenshot* so we can update your account.`,
+    ``,
+    `Thank you! 🙏`,
+    `— *${SHOP_NAME}*`,
   );
-
-  // Add QR link if any pending bill has UPI mode
-  const hasUPI = custPending.some(b => UPI_MODES.includes(b.ExpectedPaymentMode));
-  if (hasUPI) {
-    lines.push(``, `📲 *Scan QR code to pay via UPI:*`, UPI_QR_SHARE_LINK);
-  }
-
-  lines.push(``, `Thank you! 🙏`, `— *${SHOP_NAME}*`);
   return lines.filter(l => l !== undefined).join("\n");
 }
 
@@ -1103,33 +1140,7 @@ function shareWithCustomer() {
   if (ph.length < 10) {
     showToast("⚠️ No valid phone number — cannot open WhatsApp", "error"); return;
   }
-  const msg = buildCustomerMessage(e);
-  const isUPI = UPI_MODES.includes(e.ExpectedPaymentMode);
-
-  // For UPI modes: try to share QR image as a file alongside the message
-  if (isUPI && typeof navigator.share === "function" && typeof navigator.canShare === "function") {
-    fetch(UPI_QR_IMG_URL)
-      .then(r => r.blob())
-      .then(blob => {
-        const qrFile = new File([blob], "UPI_QR.jpg", { type: blob.type || "image/jpeg" });
-        const shareData = { files: [qrFile], text: msg, title: `Bill - ${e.BillNumber}` };
-        if (navigator.canShare(shareData)) {
-          return navigator.share(shareData)
-            .then(() => showToast("Shared with QR image ✓"))
-            .catch(err => {
-              if (err.name !== "AbortError") openWhatsApp(String(e.Phone), msg, billPhotoFile, `Bill - ${e.BillNumber}`);
-            });
-        }
-        openWhatsApp(String(e.Phone), msg, billPhotoFile, `Bill - ${e.BillNumber}`);
-      })
-      .catch(() => {
-        // Fetch failed (CORS etc.) — fall back to text link
-        openWhatsApp(String(e.Phone), msg, billPhotoFile, `Bill - ${e.BillNumber}`);
-      });
-    return;
-  }
-
-  openWhatsApp(String(e.Phone), msg, billPhotoFile, `Bill - ${e.BillNumber}`);
+  openWhatsApp(String(e.Phone), buildCustomerMessage(e), billPhotoFile, `Bill - ${e.BillNumber}`);
 }
 
 // Core WhatsApp opener — always opens direct chat via wa.me, with optional photo share on mobile
@@ -1312,9 +1323,9 @@ function renderTable(tableId, countId, data, pendingOnly) {
 
 function renderPendingStats(pending) {
   const total  = pending.reduce((s,e) => s + Number(e.Amount||0), 0);
-  const oldest = pending.length ? pending.slice().sort((a,b)=>normDate(a.Date).localeCompare(normDate(b.Date)))[0].Date : null;
+  const oldest = pending.length ? pending.slice().sort((a,b)=>a.Date.localeCompare(b.Date))[0].Date : null;
   const today  = new Date().toISOString().split("T")[0];
-  const todayCnt = pending.filter(e => normDate(e.Date) === today).length;
+  const todayCnt = pending.filter(e=>e.Date===today).length;
   document.getElementById("pendingStats").innerHTML = [
     { label:"Pending Bills",      value: pending.length,   color:"#F59E0B", bg:"#FFFBEB" },
     { label:"Total Amount Due",   value: fmtCur(total),    color:"#DC2626", bg:"#FEF2F2" },
@@ -1890,7 +1901,7 @@ function renderDeliveriesTab(pendDels) {
   const statsEl = document.getElementById("deliveriesStats");
   if (statsEl) {
     const today = new Date().toISOString().split("T")[0];
-    const todayCnt = pendDels.filter(e => normDate(e.Date) === today).length;
+    const todayCnt = pendDels.filter(e => e.Date === today).length;
     const totalAmt  = pendDels.reduce((s,e) => s+Number(e.Amount||0), 0);
     statsEl.innerHTML = [
       { label:"Pending Deliveries", value: pendDels.length,  color:"#1D4ED8", bg:"#EFF6FF" },
@@ -1953,8 +1964,8 @@ function applyFilter(data, f) {
     const s = (f.search||"").toLowerCase().trim();
     if (s && !e.CustomerName.toLowerCase().includes(s)) return false;
     if (f.status   && e.Status !== f.status) return false;
-    if (f.dateFrom && normDate(e.Date) < f.dateFrom) return false;
-    if (f.dateTo   && normDate(e.Date) > f.dateTo)   return false;
+    if (f.dateFrom && e.Date < f.dateFrom)   return false;
+    if (f.dateTo   && e.Date > f.dateTo)     return false;
     return true;
   });
 }
@@ -2055,22 +2066,13 @@ function renderForm(data, isEdit) {
             onchange="onBillPhotoSelected(this)" style="padding:6px"/>
           <div id="billPreview"></div>`;
       } else {
-        // For time inputs, normalize Sheets date-time strings to HH:MM
-        // For date inputs, normalize to YYYY-MM-DD
-        let val = data[f.key] || "";
-        if (f.type === "time" && val) {
-          val = parseTimeToHHMM(val) || "";
-        } else if (f.type === "date" && val) {
-          val = normDate(val) || "";
-        }
-        inp = `<input class="form-control" type="${f.type}" id="ff_${f.key}" value="${val}" />`;
+        inp = `<input class="form-control" type="${f.type}" id="ff_${f.key}" value="${data[f.key]||""}" />`;
       }
       return `<div class="${cls}${delivClass}" id="fgroup_${f.key}"><label class="form-label">${f.label}</label>${inp}</div>`;
     }).join("");
 
   // Defaults
   if (!data.Date) { const el=document.getElementById("ff_Date"); if(el) el.value=new Date().toISOString().split("T")[0]; }
-  else { const el=document.getElementById("ff_Date"); if(el && data.Date) el.value = normDate(data.Date) || el.value; }
   if (!data.OrderTime && !isEdit) { const el=document.getElementById("ff_OrderTime"); if(el) el.value=new Date().toTimeString().slice(0,5); }
 
   // Apply delivery-only visibility on initial load
@@ -2234,35 +2236,10 @@ function getWeekKey(dateStr) {
   try { return `W${String(getWeek(dateStr)).padStart(2,"0")}-${dateStr.slice(0,4)}`; }
   catch { return ""; }
 }
-// Normalize any date format (incl. Sheets GMT strings) → "YYYY-MM-DD"
-function normDate(d) {
-  if (!d) return "";
-  const s = String(d).trim();
-  // Already YYYY-MM-DD
-  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (iso) return iso[0];
-  // Sheets GMT string: "Mon Feb 23 2026 00:00:00 GMT+0530 (IST)"
-  try {
-    const dt = new Date(s);
-    if (!isNaN(dt)) {
-      // Use local date parts (IST offset already in the string)
-      const y = dt.getFullYear();
-      const m = String(dt.getMonth()+1).padStart(2,"0");
-      const day = String(dt.getDate()).padStart(2,"0");
-      return `${y}-${m}-${day}`;
-    }
-  } catch(_) {}
-  return s;
-}
-
 function getGroupKey(dateStr) {
   if (!dateStr) return "";
-  const nd = normDate(dateStr); // always YYYY-MM-DD
-  if (!nd || nd.includes("undefined") || nd.includes("NaN")) return "";
-  if (groupBy === "day")   return nd;
-  if (groupBy === "week")  return getWeekKey(nd);
-  if (groupBy === "month") return nd.slice(0,7);
-  return nd;
+  const k = groupBy==="day"? dateStr : groupBy==="week"? getWeekKey(dateStr) : dateStr.slice(0,7);
+  return (k && !k.includes("undefined") && !k.includes("NaN")) ? k : "";
 }
 
 let toastTimer;
@@ -2291,7 +2268,7 @@ function getSampleData() {
 
 // ── INIT ──────────────────────────────────────────────────────
 window.onload = () => {
-  allEntries = []; // start empty — real data loaded from sheet below
+  allEntries = getSampleData();
   initFilterBars(); // creates persistent inputs — must run before renderAll
   renderAll();
   startAutoSync(); // background sync every 2 min (won't fire in demo mode)
