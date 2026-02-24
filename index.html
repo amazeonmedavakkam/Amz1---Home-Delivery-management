@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>DeliverEase — Home Delivery Management</title>
+<title>DeliverEase — Home Delivery Management System</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚚</text></svg>" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Lora:wght@600;700&display=swap" rel="stylesheet" />
@@ -91,7 +91,7 @@
 
   /* ── Filter Bar ── */
   .filter-bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-  .filter-input { border: 1.5px solid var(--slate-200); border-radius: 8px; padding: 7px 12px; font-size: 14px; outline: none; background: var(--slate-50); color: var(--slate-800); min-width: 150px; }
+  .filter-input { border: 1.5px solid var(--slate-200); border-radius: 8px; padding: 7px 12px; font-size: 13px; outline: none; background: var(--slate-50); color: var(--slate-800); min-width: 150px; }
   .filter-input:focus { border-color: var(--green-600); }
   .btn-clear { padding: 7px 12px; border-radius: 8px; border: 1.5px solid #FCA5A5; background: var(--red-bg); font-size: 12px; font-weight: 600; color: var(--red); }
 
@@ -473,6 +473,7 @@
           <label class="form-label">Actual Payment Mode <span style="color:var(--red)">*</span></label>
           <select class="form-control" id="receivedModeInput">
             <option value="">-- Select mode --</option>
+            ${DELIVERY_MODES.map(m=>`<option value="${m}">${m}</option>`).join("")}
           </select>
         </div>
       </div>
@@ -746,7 +747,7 @@ async function saveEntry() {
     showToast("⚠️ Bill image is required — please attach a photo of the bill", "error");
     return;
   }
-  // Duplicate bill number check (only for new entries)
+  // Duplicate bill number check
   if (!editingId) {
     const dup = allEntries.find(e => e.BillNumber && e.BillNumber.trim().toLowerCase() === data.BillNumber.trim().toLowerCase());
     if (dup) {
@@ -754,10 +755,9 @@ async function saveEntry() {
       return;
     }
   } else {
-    // On edit: ensure no OTHER entry has the same bill number
     const dup = allEntries.find(e => e.ID !== editingId && e.BillNumber && e.BillNumber.trim().toLowerCase() === data.BillNumber.trim().toLowerCase());
     if (dup) {
-      showToast(`⚠️ Bill Number "${data.BillNumber}" already used for ${dup.CustomerName}. Use a unique bill number.`, "error");
+      showToast(`⚠️ Bill Number "${data.BillNumber}" already used for ${dup.CustomerName}. Please use a unique bill number.`, "error");
       return;
     }
   }
@@ -777,8 +777,7 @@ async function saveEntry() {
     }
     btn.innerHTML = "Save Changes";
   } else {
-    const isPrepaid = data.Prepaid === "true" || data.Prepaid === true
-                   || PREPAID_MODES.includes(data.ExpectedPaymentMode);
+    const isPrepaid = data.Prepaid === "true" || data.Prepaid === true;
     data.Status = isPrepaid ? "received" : "pending";
     if (isPrepaid) {
       data.PaymentMode  = data.ExpectedPaymentMode || "";
@@ -883,7 +882,6 @@ function openPostSaveModal() {
   if (!e) return;
 
   const isDelivery  = (e.OrderType || "Home Delivery") !== "Pay Later";
-  const isAlreadyPaid = PREPAID_MODES.includes(e.ExpectedPaymentMode) || e.Status === "received";
   // Outstanding bills check — by phone number
   const normPhone   = (e.Phone||"").replace(/\D/g,"").slice(-10);
   const custPending = allEntries.filter(x => {
@@ -892,14 +890,10 @@ function openPostSaveModal() {
   });
   const totalDue = custPending.reduce((s,x) => s + Number(x.Amount||0), 0);
 
-  const paidBadge = isAlreadyPaid
-    ? `<span style="background:#DCFCE7;color:#065F46;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:6px">✅ PAID</span>`
-    : `<span style="background:#FEF3C7;color:#92400E;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:6px">⏳ PAYMENT PENDING</span>`;
-
   document.getElementById("postSaveInfo").innerHTML =
-    `${isDelivery?"🚚":"🏪"} <strong>${e.OrderType||"Home Delivery"}</strong> &nbsp;|&nbsp; <strong>📦 ${e.BillNumber}</strong>${paidBadge}<br>` +
+    `${isDelivery?"🚚":"🏪"} <strong>${e.OrderType||"Home Delivery"}</strong> &nbsp;|&nbsp; <strong>📦 ${e.BillNumber}</strong><br>` +
     `👤 <strong>${e.CustomerName}</strong> &nbsp;|&nbsp; 📞 ${e.Phone || "—"}<br>` +
-    `💰 <strong>${fmtCur(e.Amount)}</strong> &nbsp;|&nbsp; 💳 ${e.ExpectedPaymentMode || "—"}<br>` +
+    `💰 <strong>${fmtCur(e.Amount)}</strong> &nbsp;|&nbsp; 💳 Expected: <strong>${e.ExpectedPaymentMode || "—"}</strong><br>` +
     `<span style="font-size:11px;color:#059669;font-weight:600">📱 WA/SMS bill buttons below will send only THIS order's details</span>` +
     (custPending.length > 1 ? `<br><span style="color:#DC2626;font-weight:700;font-size:12px">⚠️ This customer has ${custPending.length} pending bills totalling ${fmtCur(totalDue)} — use WA F/U to send all</span>` : "");
 
@@ -926,17 +920,15 @@ function closePostSaveModal() {
 }
 
 // ── WHATSAPP ─────────────────────────────────────────────────
-// Payment modes that mean the customer has already paid upfront
-const PREPAID_MODES = ["Razorpay"];
-
 function buildCustomerMessage(entry) {
+  // Single order bill notification — shows only THIS order's details
   const isDelivery = (entry.OrderType || "Home Delivery") !== "Pay Later";
-  const expMode    = entry.ExpectedPaymentMode || entry.PaymentMode || "";
-  // Already paid = Razorpay mode OR status is already "received" (prepaid checkbox was ticked)
-  const isAlreadyPaid = PREPAID_MODES.includes(expMode) || entry.Status === "received";
+  const expMode    = entry.ExpectedPaymentMode || entry.PaymentMode || "—";
+  // Razorpay = paid online upfront; status "received" = prepaid checkbox was ticked
+  const isAlreadyPaid = ["Razorpay"].includes(entry.ExpectedPaymentMode) || entry.Status === "received";
 
   if (isDelivery) {
-    // ── HOME DELIVERY ──
+    // Home Delivery: order is ready and will be delivered shortly
     const lines = [
       `🚚 *Order Update from ${SHOP_NAME}*`,
       ``,
@@ -947,31 +939,17 @@ function buildCustomerMessage(entry) {
       `📄 Bill No: *${entry.BillNumber}*`,
       `📅 Date: ${fmtDate(entry.Date)}`,
       `💰 Amount: *${fmtCur(entry.Amount)}*`,
+      `💳 Payment Mode: *${expMode}*`,
     ];
-
     if (isAlreadyPaid) {
-      lines.push(
-        `💳 Payment Mode: *${expMode}*`,
-        ``,
-        `✅ *Payment has been received. This bill is shared for your reference only.*`,
-        ``,
-        `Thank you for shopping with us! 🙏`,
-        `— *${SHOP_NAME}*`
-      );
+      lines.push(``, `✅ *Payment received — this bill is shared for your reference only.*`);
     } else {
-      lines.push(
-        `💳 Expected Payment: *${expMode || "—"}*`,
-        ``,
-        `📸 Kindly keep the payment ready. Once received, please share the *screenshot of the transaction* so we can update your account.`,
-        ``,
-        `Thank you for your order! 🙏`,
-        `— *${SHOP_NAME}*`
-      );
+      lines.push(``, `📸 Kindly keep the payment ready. Once received, please share the *screenshot of the transaction* so we can update your account.`);
     }
+    lines.push(``, `Thank you for your order! 🙏`, `— *${SHOP_NAME}*`);
     return lines.join("\n");
-
   } else {
-    // ── PAY LATER (Walk-in) ──
+    // Pay Later (Walk-in)
     const lines = [
       `🏪 *Bill from ${SHOP_NAME}*`,
       ``,
@@ -982,26 +960,14 @@ function buildCustomerMessage(entry) {
       `📄 Bill No: *${entry.BillNumber}*`,
       `📅 Date: ${fmtDate(entry.Date)}`,
       `💰 Amount Due: *${fmtCur(entry.Amount)}*`,
-      `💳 Payment Mode: *${expMode || "—"}*`,
+      `💳 Payment Mode: *${expMode}*`,
     ];
-
     if (isAlreadyPaid) {
-      lines.push(
-        ``,
-        `✅ *Payment has been received. This bill is shared for your reference only.*`,
-        ``,
-        `Thank you for shopping with us! 🙏`,
-        `— *${SHOP_NAME}*`
-      );
+      lines.push(``, `✅ *Payment received — this bill is shared for your reference only.*`);
     } else {
-      lines.push(
-        ``,
-        `📸 Kindly make the payment and share the *screenshot of the transaction* so we can update your account.`,
-        ``,
-        `Thank you for your business! 🙏`,
-        `— *${SHOP_NAME}*`
-      );
+      lines.push(``, `📸 Kindly make the payment and share the *screenshot of the transaction* so we can update your account.`);
     }
+    lines.push(``, `Thank you for your business! 🙏`, `— *${SHOP_NAME}*`);
     return lines.join("\n");
   }
 }
